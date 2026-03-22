@@ -73,6 +73,25 @@
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
         background: #000;
       }
+      .indicator {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 48px;
+        color: #ffffff7a;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+        z-index: 1100;
+        pointer-events: none;
+        background: rgb(255 255 255 / 7%);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 10px 35px;
+        box-shadow: 0 8px 32px 0px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
       .controls {
         width: 90%;
         display: flex;
@@ -114,6 +133,9 @@
           0 0 0 4px rgba(26, 115, 232, 0.5);
         transform: scale(1.08);
       }
+      #mute.active {
+        box-shadow: none;
+      }
       #screenshot {
         background-color: #34a853;
       }
@@ -140,6 +162,29 @@
         margin-bottom: 15px;
         z-index: 1200;
         position: relative;
+      }
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .info-btn {
+        width: 30px;
+        height: 30px;
+        border: none;
+        border-radius: 50%;
+        background-color: #333;
+        color: #fff;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.3s ease;
+      }
+      .info-btn:hover {
+        background-color: #555;
       }
       .file-label {
         width: 45px;
@@ -265,7 +310,10 @@
   <body>
     <div class="header">
       <h1>Framerr <span class="logo-icon">📽️</span></h1>
-      <label for="videoFile" class="file-label" title="Choose Video File">📁</label>
+      <div class="header-right">
+        <label for="videoFile" class="file-label" title="Choose Video File">📁</label>
+        <button id="info" class="info-btn" title="App Info">i</button>
+      </div>
     </div>
     <input type="file" id="videoFile" accept="video/*" />
     <div class="info">
@@ -274,11 +322,12 @@
       <p>Frames: <span id="currentFrame">0</span>/<span id="totalFrames">0</span></p>
     </div>
     <video id="video" class="video-fixed" playsinline webkit-playsinline muted></video>
+    <div id="playPauseIndicator" class="indicator">▶️</div>
     <button id="mute" title="Mute/Unmute">&#128266;</button>
     <div class="bottom-pane">
       <input type="range" id="scrubber" min="0" max="100" value="0" step="0.1" />
       <div class="controls">
-        <button id="playPause" title="Play/Pause">&#9654;</button>
+        <button id="speed" title="Playback Speed">1x</button>
         <button id="prevFrame" title="Previous Frame">&#9198;</button>
         <button id="nextFrame" title="Next Frame">&#9197;</button>
         <button id="screenshot" title="Take screenshot">📸</button>
@@ -289,7 +338,7 @@
       const videoFile = document.getElementById("videoFile");
       const video = document.getElementById("video");
       const scrubber = document.getElementById("scrubber");
-      const playPause = document.getElementById("playPause");
+      const speed = document.getElementById("speed");
       const mute = document.getElementById("mute");
       const prevFrame = document.getElementById("prevFrame");
       const nextFrame = document.getElementById("nextFrame");
@@ -299,10 +348,15 @@
       const totalFramesSpan = document.getElementById("totalFrames");
       const currentFrameSpan = document.getElementById("currentFrame");
       const fileLabel = document.querySelector(".file-label");
+      const playPauseIndicator = document.getElementById("playPauseIndicator");
+      const info = document.getElementById("info");
 
       let frameRate = 30; // Assume 30 fps, can be adjusted
 
       let currentVideoObjectUrl = null;
+
+      const speeds = [0.25, 0.5, 0.75, 1, 1.5, 2];
+      let currentSpeedIndex = 3; // Start at 1x
 
       videoFile.addEventListener("change", (e) => {
         const file = e.target.files[0];
@@ -329,6 +383,9 @@
             scrubber.value = 0;
             currentTimeSpan.textContent = "0.00";
             currentFrameSpan.textContent = "0";
+            video.muted = true;
+            mute.innerHTML = "&#128263;";
+            mute.classList.remove("active");
           },
           { once: true }
         );
@@ -346,6 +403,18 @@
       fileLabel.addEventListener("click", (e) => {
         e.preventDefault();
         videoFile.click();
+      });
+
+      info.addEventListener("click", () => {
+        alert("Framerr Video Editor\n\n- Tap video to play/pause\n- Use speed button to change playback rate\n- Frame navigation with prev/next buttons\n- Long press for continuous frame stepping\n- Scrub to seek through video\n- Take screenshots with camera button\n- Long press camera for custom save location\n\nBuilt with HTML5 Video API");
+      });
+
+      video.addEventListener("click", () => {
+        if (video.paused) {
+          video.play();
+        } else {
+          video.pause();
+        }
       });
 
       video.addEventListener("loadedmetadata", () => {
@@ -367,10 +436,12 @@
       }
 
       prevFrame.addEventListener("click", () => {
+        if (!video.paused) video.pause();
         stepFrame(-1);
       });
 
       nextFrame.addEventListener("click", () => {
+        if (!video.paused) video.pause();
         stepFrame(1);
       });
 
@@ -405,6 +476,12 @@
       attachLongPress(prevFrame, -1);
       attachLongPress(nextFrame, 1);
 
+      speed.addEventListener("click", () => {
+        currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
+        video.playbackRate = speeds[currentSpeedIndex];
+        speed.textContent = speeds[currentSpeedIndex] + "x";
+      });
+
       function setupActiveState(button) {
         button.addEventListener("mousedown", () => button.classList.add("active"));
         button.addEventListener("mouseup", () => button.classList.remove("active"));
@@ -414,24 +491,17 @@
         button.addEventListener("touchcancel", () => button.classList.remove("active"));
       }
 
-      [playPause, mute, prevFrame, nextFrame, screenshot].forEach(setupActiveState);
+      [speed, mute, prevFrame, nextFrame, screenshot].forEach(setupActiveState);
 
-      let playPauseLongPressed = false;
-      function stopVideo() {
-        video.pause();
-        video.currentTime = 0;
-        playPause.innerHTML = "&#9654;";
-        playPause.classList.remove("active");
-      }
-
-      function attachLongPressStop(button) {
+      let screenshotLongPressed = false;
+      function attachLongPressScreenshot(button) {
         let timeoutId;
 
         const start = () => {
-          playPauseLongPressed = false;
+          screenshotLongPressed = false;
           timeoutId = setTimeout(() => {
-            playPauseLongPressed = true;
-            stopVideo();
+            screenshotLongPressed = true;
+            takeScreenshotWithPicker();
           }, longPressConfig.delay);
         };
 
@@ -448,23 +518,77 @@
         button.addEventListener("touchcancel", clear);
       }
 
-      attachLongPressStop(playPause);
+      function createScreenshotBlob(callback) {
+        if (!video.src || video.readyState < 2) {
+          return alert("Load a file.");
+        }
 
-      playPause.addEventListener("click", () => {
-        if (playPauseLongPressed) {
-          playPauseLongPressed = false;
-          return;
+        const width = video.videoWidth;
+        const height = video.videoHeight;
+        if (!width || !height) {
+          return alert("Video metadata not ready yet. Please wait a moment.");
         }
-        if (video.paused) {
-          video.play();
-          playPause.innerHTML = "&#9208;";
-          playPause.classList.add("active");
-        } else {
-          video.pause();
-          playPause.innerHTML = "&#9654;";
-          playPause.classList.remove("active");
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            return alert("Could not create screenshot.");
+          }
+          callback(blob);
+        }, "image/png");
+      }
+
+      function takeScreenshotDownload() {
+        if (!video.paused) video.pause();
+        createScreenshotBlob((blob) => {
+          const currentFrame = Math.floor(video.currentTime * frameRate);
+          const fileName = `framerr-img-${currentFrame}.png`;
+          const url = URL.createObjectURL(blob);
+
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+
+          setTimeout(() => {
+            URL.revokeObjectURL(url);
+            link.remove();
+          }, 300);
+        });
+      }
+
+      async function takeScreenshotWithPicker() {
+        if (!video.paused) video.pause();
+        if (!window.showSaveFilePicker) {
+          return alert("File System Access API not supported in this browser. Use download instead.");
         }
-      });
+
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: `framerr-img-${Math.floor(video.currentTime * frameRate)}.png`,
+            types: [
+              {
+                description: "PNG Image",
+                accept: { "image/png": [".png"] }
+              }
+            ]
+          });
+
+          createScreenshotBlob(async (blob) => {
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+          });
+        } catch (err) {
+          console.error("Save cancelled or failed:", err);
+        }
+      }
 
       mute.addEventListener("click", () => {
         video.muted = !video.muted;
@@ -503,65 +627,38 @@
       });
 
       video.addEventListener("ended", () => {
-        playPause.innerHTML = "&#9654;";
-        playPause.classList.remove("active");
+        playPauseIndicator.textContent = ">";
+        playPauseIndicator.style.opacity = "0.8";
+        setTimeout(() => {
+          playPauseIndicator.style.opacity = "0";
+        }, 500);
       });
 
       video.addEventListener("play", () => {
-        playPause.innerHTML = "&#9208;";
-        playPause.classList.add("active");
+        playPauseIndicator.textContent = "⏸️";
+        playPauseIndicator.style.opacity = "0.8";
+        setTimeout(() => {
+          playPauseIndicator.style.opacity = "0";
+        }, 500);
       });
 
       video.addEventListener("pause", () => {
-        playPause.innerHTML = "&#9654;";
-        playPause.classList.remove("active");
+        playPauseIndicator.textContent = "▶️";
+        playPauseIndicator.style.opacity = "0.8";
+        setTimeout(() => {
+          playPauseIndicator.style.opacity = "0";
+        }, 500);
       });
       video.pause();
       video.currentTime = 0;
-      playPause.innerHTML = "&#9654;";
-
-      mute.addEventListener("click", () => {
-        video.muted = !video.muted;
-        mute.innerHTML = video.muted ? "&#128263;" : "&#128266;";
-      });
+      video.playbackRate = speeds[currentSpeedIndex];
 
       screenshot.addEventListener("click", () => {
-        if (!video.src || video.readyState < 2) {
-          return alert("Load a file.");
+        if (screenshotLongPressed) {
+          screenshotLongPressed = false;
+          return;
         }
-
-        const width = video.videoWidth;
-        const height = video.videoHeight;
-        if (!width || !height) {
-          return alert("Video metadata not ready yet. Please wait a moment.");
-        }
-
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(video, 0, 0, width, height);
-
-        canvas.toBlob((blob) => {
-          if (!blob) {
-            return alert("Could not create screenshot.");
-          }
-
-          const now = new Date().toISOString().replace(/[.:]/g, "-");
-          const fileName = `framerr-screenshot-${now}.png`;
-          const url = URL.createObjectURL(blob);
-
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = fileName;
-          document.body.appendChild(link);
-          link.click();
-
-          setTimeout(() => {
-            URL.revokeObjectURL(url);
-            link.remove();
-          }, 300);
-        }, "image/png");
+        takeScreenshotDownload();
       });
     </script>
   </body>
