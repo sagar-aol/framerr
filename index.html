@@ -16,6 +16,8 @@
         color: #ffffff;
         min-height: 100vh;
         box-sizing: border-box;
+        overflow: hidden;
+        touch-action: none;
       }
       h1 {
         color: #ffffff;
@@ -46,6 +48,19 @@
         border-radius: 8px;
         margin-bottom: 15px;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+      }
+      .video-fixed {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: min(90vw, 700px);
+        max-height: 60vh;
+        z-index: 1000;
+        border: 2px solid #444;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
+        background: #000;
       }
       .controls {
         display: flex;
@@ -113,9 +128,25 @@
       input[type="file"] {
         display: none;
       }
-      input[type="range"] {
+      .bottom-pane {
+        position: fixed;
+        bottom: 0;
+        left: 0;
         width: 100%;
-        margin-bottom: 15px;
+        background: rgba(18, 18, 18, 0.95);
+        border-top: 1px solid #333;
+        backdrop-filter: blur(6px);
+        padding: 8px 10px;
+        box-sizing: border-box;
+        z-index: 1100;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+      }
+      input[type="range"] {
+        width: min(95%, 800px);
+        margin: 0;
         -webkit-appearance: none;
         background: #333;
         height: 6px;
@@ -201,14 +232,17 @@
       <p>Total Frames: <span id="totalFrames">0</span></p>
       <p>Current Frame: <span id="currentFrame">0</span></p>
     </div>
-    <video id="video"></video>
-    <input type="range" id="scrubber" min="0" max="100" value="0" step="0.1" />
-    <div class="controls">
-      <button id="playPause" title="Play/Pause">&#9654;</button>
-      <button id="stop" title="Stop">&#9209;</button>
-      <button id="mute" title="Mute/Unmute">&#128266;</button>
-      <button id="prevFrame" title="Previous Frame">&#9198;</button>
-      <button id="nextFrame" title="Next Frame">&#9197;</button>
+    <video id="video" class="video-fixed" playsinline webkit-playsinline muted></video>
+    <div class="bottom-pane">
+      <input type="range" id="scrubber" min="0" max="100" value="0" step="0.1" />
+      <div class="controls">
+        <button id="playPause" title="Play/Pause">&#9654;</button>
+        <button id="stop" title="Stop">&#9209;</button>
+        <button id="mute" title="Mute/Unmute">&#128266;</button>
+        <button id="prevFrame" title="Previous Frame">&#9198;</button>
+        <button id="nextFrame" title="Next Frame">&#9197;</button>
+        <button id="screenshot" title="Take screenshot">📸</button>
+      </div>
     </div>
 
     <script>
@@ -220,6 +254,7 @@
       const mute = document.getElementById("mute");
       const prevFrame = document.getElementById("prevFrame");
       const nextFrame = document.getElementById("nextFrame");
+      const screenshot = document.getElementById("screenshot");
       const currentTimeSpan = document.getElementById("currentTime");
       const durationSpan = document.getElementById("duration");
       const totalFramesSpan = document.getElementById("totalFrames");
@@ -248,17 +283,44 @@
         scrubber.value = video.currentTime;
       });
 
-      prevFrame.addEventListener("click", () => {
+      function stepFrame(amount) {
         video.pause();
-        const newTime = Math.max(0, video.currentTime - 1 / frameRate);
+        const newTime = Math.min(video.duration, Math.max(0, video.currentTime + amount / frameRate));
         video.currentTime = newTime;
+      }
+
+      prevFrame.addEventListener("click", () => {
+        stepFrame(-1);
       });
 
       nextFrame.addEventListener("click", () => {
-        video.pause();
-        const newTime = Math.min(video.duration, video.currentTime + 1 / frameRate);
-        video.currentTime = newTime;
+        stepFrame(1);
       });
+
+      const longPressConfig = { delay: 550, repeatAmount: 5 };
+      function attachLongPress(button, stepAmount) {
+        let timer;
+        const startLongPress = () => {
+          timer = setTimeout(() => {
+            stepFrame(stepAmount * longPressConfig.repeatAmount);
+          }, longPressConfig.delay);
+        };
+        const clearLongPress = () => {
+          if (timer) {
+            clearTimeout(timer);
+            timer = null;
+          }
+        };
+        button.addEventListener("mousedown", startLongPress);
+        button.addEventListener("touchstart", startLongPress, { passive: true });
+        button.addEventListener("mouseup", clearLongPress);
+        button.addEventListener("mouseleave", clearLongPress);
+        button.addEventListener("touchend", clearLongPress);
+        button.addEventListener("touchcancel", clearLongPress);
+      }
+
+      attachLongPress(prevFrame, -1);
+      attachLongPress(nextFrame, 1);
 
       playPause.addEventListener("click", () => {
         if (video.paused) {
@@ -283,6 +345,47 @@
 
       video.addEventListener("ended", () => {
         playPause.innerHTML = "&#9654;";
+      });
+
+      screenshot.addEventListener("click", () => {
+        if (!video.src || video.readyState < 2) {
+          return alert("Load a video first so screenshot can capture the current frame.");
+        }
+
+        const width = video.videoWidth;
+        const height = video.videoHeight;
+        if (!width || !height) {
+          return alert("Video metadata not ready yet. Please wait a moment.");
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            return alert("Could not create screenshot.");
+          }
+
+          const now = new Date().toISOString().replace(/[.:]/g, "-");
+          const fileName = `framerr-screenshot-${now}.png`;
+          const url = URL.createObjectURL(blob);
+
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+
+          setTimeout(() => {
+            URL.revokeObjectURL(url);
+            link.remove();
+          }, 300);
+
+          alert("Screenshot captured and download started. Save it to Photos from your device gallery.");
+        }, "image/png");
       });
     </script>
   </body>
