@@ -72,6 +72,9 @@
       bottom: var(--bottom-height);
       left: 0;
       width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       padding: 16px;
       background: radial-gradient(circle at center, #1a1a24 0%, #0d0d12 100%);
       z-index: 10;
@@ -139,7 +142,7 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.1s ease;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
     .btn:active { transform: scale(0.92); }
@@ -173,40 +176,8 @@
       border-radius: 12px;
       transform-origin: center;
       will-change: transform;
-    }
-
-    .flash-overlay {
-      position: absolute;
-      inset: 16px;
-      background-color: white;
-      border-radius: 12px;
-      opacity: 0;
       pointer-events: none;
-      transition: opacity 0.3s ease-out;
-      z-index: 20;
     }
-
-    .indicator {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0.8);
-      color: white;
-      background: rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border-radius: 50%;
-      width: 80px;
-      height: 80px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      z-index: 20;
-    }
-    .indicator .material-symbols-rounded { font-size: 40px; }
 
     .video-info {
       width: 100%;
@@ -284,7 +255,7 @@
       <div class="max-width-wrapper">
         <div class="title-group">
           <h1>Framerr <span class="material-symbols-rounded">movie</span></h1>
-          <span class="version-info">ver 1.2.4</span>
+          <span class="version-info">ver 1.2.5</span>
         </div>
         <label for="videoFile" class="btn btn-sm" title="Choose Video File">
           <span class="material-symbols-rounded">folder_open</span>
@@ -295,10 +266,6 @@
 
     <div class="video-wrapper" id="videoWrapper">
       <video id="video" playsinline webkit-playsinline muted></video>
-      <div id="flashOverlay" class="flash-overlay"></div>
-      <div id="playPauseIndicator" class="indicator">
-        <span class="material-symbols-rounded" id="indicatorIcon">play_arrow</span>
-      </div>
     </div>
 
     <div class="bottom-pane">
@@ -341,9 +308,7 @@
     let currentSpeedIdx = 3;
     let currentVideoUrl = null;
     let wasPlayingBeforeScrub = false;
-    let isUIInteracting = false;
 
-    // Transform State
     let zoomScale = 1;
     let panX = 0;
     let panY = 0;
@@ -364,10 +329,7 @@
       currentTime: document.getElementById("currentTime"),
       duration: document.getElementById("duration"),
       totalFrames: document.getElementById("totalFrames"),
-      currentFrame: document.getElementById("currentFrame"),
-      indicator: document.getElementById("playPauseIndicator"),
-      indicatorIcon: document.getElementById("indicatorIcon"),
-      flashOverlay: document.getElementById("flashOverlay"),
+      currentFrame: document.getElementById("currentFrame")
     };
 
     function loadVideo(file) {
@@ -381,34 +343,24 @@
 
     function togglePlay() {
       if (!DOM.video.src) return;
-      DOM.video.paused ? DOM.video.play() : DOM.video.pause();
+      if (DOM.video.paused) {
+        DOM.video.play();
+        DOM.playIcon.textContent = "pause";
+      } else {
+        DOM.video.pause();
+        DOM.playIcon.textContent = "play_arrow";
+      }
     }
 
     function stepFrame(frames) {
       if (!DOM.video.src) return;
-      if (!DOM.video.paused) DOM.video.pause();
-
+      if (!DOM.video.paused) {
+        DOM.video.pause();
+        DOM.playIcon.textContent = "play_arrow";
+      }
       const currentFrameIndex = Math.round(DOM.video.currentTime * FRAME_RATE);
       const targetTime = (currentFrameIndex + frames) / FRAME_RATE;
       DOM.video.currentTime = Math.max(0, Math.min(DOM.video.duration, targetTime));
-    }
-
-    function showIndicator(iconName) {
-      DOM.indicatorIcon.textContent = iconName;
-      DOM.indicator.style.opacity = "1";
-      DOM.indicator.style.transform = "translate(-50%, -50%) scale(1)";
-      setTimeout(() => {
-        DOM.indicator.style.opacity = "0";
-        DOM.indicator.style.transform = "translate(-50%, -50%) scale(0.8)";
-      }, 500);
-    }
-
-    function triggerFlash() {
-      DOM.flashOverlay.style.transition = 'none';
-      DOM.flashOverlay.style.opacity = '1';
-      void DOM.flashOverlay.offsetWidth;
-      DOM.flashOverlay.style.transition = 'opacity 0.5s ease-out';
-      DOM.flashOverlay.style.opacity = '0';
     }
 
     function updateMetadata() {
@@ -427,9 +379,7 @@
     function bindPress(element, onStart, onEnd) {
       element.addEventListener('contextmenu', e => e.preventDefault());
       element.addEventListener('pointerdown', onStart);
-      ['pointerup', 'pointerleave', 'pointercancel'].forEach(e => {
-        element.addEventListener(e, onEnd);
-      });
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach(e => element.addEventListener(e, onEnd));
     }
 
     function setupSmoothFrameStepping(btn, direction) {
@@ -443,7 +393,6 @@
         if (e.pointerType === 'mouse' && e.button !== 0) return;
 
         isHeld = true;
-        isUIInteracting = true;
         stepFrame(direction);
         triggerHapticTick();
 
@@ -469,7 +418,6 @@
 
       const stopAction = () => {
         isHeld = false;
-        isUIInteracting = false;
         clearTimeout(timeoutId);
         cancelAnimationFrame(animationFrameId);
       };
@@ -479,8 +427,10 @@
 
     function downloadScreenshot() {
       if (!DOM.video.src || DOM.video.readyState < 2) return;
-      if (!DOM.video.paused) DOM.video.pause();
-      triggerFlash();
+      if (!DOM.video.paused) {
+        DOM.video.pause();
+        DOM.playIcon.textContent = "play_arrow";
+      }
 
       const canvas = document.createElement("canvas");
       canvas.width = DOM.video.videoWidth;
@@ -498,7 +448,6 @@
       }, "image/png");
     }
 
-    // --- Transform Engine ---
     function applyTransform() {
       DOM.video.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomScale})`;
     }
@@ -510,7 +459,6 @@
       applyTransform();
     }
 
-    // Touch Event Handling for Pan/Zoom
     let initialPinchDist = null;
     let initialScale = 1;
     let isPanning = false;
@@ -528,7 +476,7 @@
           e.touches[0].clientY - e.touches[1].clientY
         );
         initialScale = zoomScale;
-      } else if (e.touches.length === 1 && zoomScale > 1) {
+      } else if (e.touches.length === 1) {
         isPanning = true;
         startTouchX = e.touches[0].clientX;
         startTouchY = e.touches[0].clientY;
@@ -549,7 +497,7 @@
         zoomScale = Math.min(Math.max(1, initialScale * (currentDist / initialPinchDist)), 10);
         if (zoomScale === 1) { panX = 0; panY = 0; }
         applyTransform();
-      } else if (e.touches.length === 1 && isPanning) {
+      } else if (e.touches.length === 1 && isPanning && zoomScale > 1) {
         panX = initialPanX + (e.touches[0].clientX - startTouchX);
         panY = initialPanY + (e.touches[0].clientY - startTouchY);
         applyTransform();
@@ -557,23 +505,22 @@
     }, { passive: false });
 
     DOM.videoWrapper.addEventListener('touchend', (e) => {
-      initialPinchDist = null;
-      isPanning = false;
-
-      // Tap to play/pause + Double tap to reset
-      if (e.touches.length === 0 && !hasDragged) {
-        const currentTime = new Date().getTime();
-        const tapLength = currentTime - lastTapTime;
-        if (tapLength < 300 && tapLength > 0) {
-          resetTransform();
-        } else {
-          togglePlay();
+      if (e.touches.length < 2) initialPinchDist = null;
+      if (e.touches.length === 0) {
+        isPanning = false;
+        if (!hasDragged) {
+          const currentTime = Date.now();
+          const tapLength = currentTime - lastTapTime;
+          if (tapLength < 300 && tapLength > 0) {
+            resetTransform();
+          } else {
+            togglePlay();
+          }
+          lastTapTime = currentTime;
         }
-        lastTapTime = currentTime;
       }
     });
 
-    // Desktop Wheel Support
     DOM.videoWrapper.addEventListener('wheel', (e) => {
       e.preventDefault();
       const scaleDelta = e.deltaY * -0.005;
@@ -586,14 +533,8 @@
     DOM.video.addEventListener("loadedmetadata", updateMetadata);
     DOM.video.addEventListener("timeupdate", updateTime);
 
-    DOM.video.addEventListener("play", () => {
-      DOM.playIcon.textContent = "pause";
-      showIndicator("play_arrow");
-    });
-
-    DOM.video.addEventListener("pause", () => {
+    DOM.video.addEventListener("ended", () => {
       DOM.playIcon.textContent = "play_arrow";
-      showIndicator("pause");
     });
 
     DOM.playPauseBtn.addEventListener("click", togglePlay);
@@ -614,23 +555,27 @@
 
     DOM.scrubber.addEventListener("input", (e) => {
       DOM.video.currentTime = e.target.value;
+      updateTime();
     });
 
     bindPress(DOM.scrubber,
       () => {
-        isUIInteracting = true;
         wasPlayingBeforeScrub = !DOM.video.paused;
-        DOM.video.pause();
+        if (wasPlayingBeforeScrub) {
+          DOM.video.pause();
+          DOM.playIcon.textContent = "play_arrow";
+        }
       },
       () => {
-        isUIInteracting = false;
-        if (wasPlayingBeforeScrub) DOM.video.play();
+        if (wasPlayingBeforeScrub) {
+          DOM.video.play();
+          DOM.playIcon.textContent = "pause";
+        }
       }
     );
 
     setupSmoothFrameStepping(DOM.prevFrameBtn, -1);
     setupSmoothFrameStepping(DOM.nextFrameBtn, 1);
-
   </script>
 </body>
 </html>
