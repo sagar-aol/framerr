@@ -23,7 +23,6 @@
         --bottom-height: calc(150px + env(safe-area-inset-bottom));
       }
 
-      /* Aggressive User-Select Disabling */
       *,
       *::before,
       *::after {
@@ -40,7 +39,7 @@
         background-color: var(--bg-color);
         color: var(--text-main);
 
-        /* Strict viewport constraints */
+        /* viewport constraints */
         width: 100vw;
         height: 100dvh;
         overflow: hidden;
@@ -56,7 +55,7 @@
         flex-direction: column;
       }
 
-      /* 1. Header (Fixed Size) */
+      /* 1. Header */
       .header {
         flex: 0 0 var(--header-height);
         width: 100%;
@@ -71,7 +70,7 @@
         z-index: 100;
       }
 
-      /* 2. Middle Adaptive Video Area (Dynamic Size) */
+      /* 2. Middle Video Area (Dynamic Size) */
       .video-wrapper {
         flex: 1 1 0;
         min-height: 0;
@@ -85,7 +84,7 @@
         z-index: 10;
       }
 
-      /* 3. Bottom Controls Pane (Fixed Size) */
+      /* 3. Bottom Controls Pane */
       .bottom-pane {
         flex: 0 0 var(--bottom-height);
         width: 100%;
@@ -253,7 +252,7 @@
         align-items: center;
       }
 
-      /* --- Strict Layout Fixes for Timecodes --- */
+      /* --- Layout for Timecodes --- */
       .info-group span {
         color: var(--text-main);
         font-variant-numeric: tabular-nums;
@@ -261,7 +260,6 @@
         text-align: right;
       }
 
-      /* Bounded widths prevent the box from growing/shrinking */
       #currentTime,
       #duration {
         min-width: 48px;
@@ -279,7 +277,7 @@
 
       input[type="range"] {
         -webkit-appearance: none;
-        appearance: calc();
+        appearance: none;
         width: 100%;
         background: transparent;
         margin: 0;
@@ -335,7 +333,6 @@
           font-size: 11px;
         }
 
-        /* Scale down bounded widths for very small phones */
         #currentTime,
         #duration {
           min-width: 42px;
@@ -444,6 +441,7 @@
         DOM.video.paused ? DOM.video.play() : DOM.video.pause();
       }
 
+      // This steps exactly 1 frame (based on the passed direction)
       function stepFrame(frames) {
         if (!DOM.video.src) return;
         if (!DOM.video.paused) DOM.video.pause();
@@ -495,6 +493,7 @@
         });
       }
 
+      // --- Disconnected Frame Stepping ---
       function setupSmoothFrameStepping(btn, direction) {
         let timeoutId;
         let animationFrameId;
@@ -511,9 +510,11 @@
           if (e.pointerType === "mouse" && e.button !== 0) return;
 
           isHeld = true;
+          // Immediate exact 1-frame step
           stepFrame(direction);
           triggerHapticTick();
 
+          // Wait 500ms before activating continuous scrolling
           timeoutId = setTimeout(() => {
             if (!isHeld) return;
 
@@ -523,13 +524,12 @@
               if (!isHeld) return;
 
               const deltaTime = currentTime - lastTime;
-              const currentSpeedMultiplier = SPEEDS[currentSpeedIdx];
 
-              let msPerFrame = 333 / currentSpeedMultiplier;
-              msPerFrame = Math.max(msPerFrame, 100);
+              // Fixed constant speed: 1 frame every 300ms (approx 3 frames per second)
+              const msPerFrame = 300;
 
               if (deltaTime >= msPerFrame) {
-                stepFrame(direction);
+                stepFrame(direction); // Strictly 1 frame
                 triggerHapticTick();
                 lastTime = currentTime - (deltaTime % msPerFrame);
               }
@@ -571,6 +571,7 @@
         });
       }
 
+      // --- Event Listeners ---
       DOM.videoFile.addEventListener("change", (e) => loadVideo(e.target.files[0]));
 
       DOM.video.addEventListener("loadedmetadata", updateMetadata);
@@ -589,6 +590,7 @@
 
       DOM.speedBtn.addEventListener("click", () => {
         currentSpeedIdx = (currentSpeedIdx + 1) % SPEEDS.length;
+        // This applies to video playback, scrub-bar time update, and normal playback
         DOM.video.playbackRate = SPEEDS[currentSpeedIdx];
         DOM.speedBtn.textContent = `${SPEEDS[currentSpeedIdx]}x`;
       });
@@ -599,6 +601,7 @@
         DOM.muteBtn.classList.toggle("active", DOM.video.muted);
       });
 
+      // Attach  pointer logic to frame buttons
       setupSmoothFrameStepping(DOM.prevFrameBtn, -1);
       setupSmoothFrameStepping(DOM.nextFrameBtn, 1);
 
