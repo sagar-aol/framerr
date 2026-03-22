@@ -17,7 +17,16 @@
         min-height: 100vh;
         box-sizing: border-box;
         overflow: hidden;
-        touch-action: none;
+        touch-action: manipulation;
+        user-select: none;
+      }
+      *,
+      *::before,
+      *::after {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
       }
       h1 {
         color: #ffffff;
@@ -57,6 +66,7 @@
         width: min(90vw, 700px);
         max-height: 60vh;
         z-index: 1000;
+        pointer-events: auto;
         border: 2px solid #444;
         border-radius: 10px;
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
@@ -70,28 +80,44 @@
         flex-wrap: wrap;
       }
       button {
-        width: 45px;
-        height: 45px;
+        width: 58px;
+        height: 58px;
         border: none;
         border-radius: 50%;
-        background-color: #333;
-        color: #fff;
-        font-size: 18px;
+        background-color: #0f1f34;
+        color: #ffffff;
+        font-size: 22px;
+        font-weight: 700;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
         transition:
-          background-color 0.3s ease,
-          transform 0.2s ease;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+          background-color 0.2s ease,
+          transform 0.15s ease,
+          box-shadow 0.15s ease;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.45);
       }
       button:hover {
-        background-color: #555;
-        transform: scale(1.05);
+        background-color: #162a45;
+        transform: scale(1.06);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.55);
       }
       button:active {
-        transform: scale(0.95);
+        transform: scale(0.96);
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5);
+      }
+      button.active {
+        box-shadow:
+          0 0 0 2px #ffffff,
+          0 0 0 4px rgba(26, 115, 232, 0.5);
+        transform: scale(1.08);
+      }
+      #screenshot {
+        background-color: #34a853;
+      }
+      #screenshot:hover {
+        background-color: #47b663;
       }
       .header {
         display: flex;
@@ -100,9 +126,13 @@
         width: 100%;
         max-width: 800px;
         margin-bottom: 15px;
+        z-index: 1200;
+        position: relative;
       }
       .file-label {
         width: 45px;
+        z-index: 1300;
+        position: relative;
         height: 45px;
         border: none;
         border-radius: 50%;
@@ -259,16 +289,54 @@
       const durationSpan = document.getElementById("duration");
       const totalFramesSpan = document.getElementById("totalFrames");
       const currentFrameSpan = document.getElementById("currentFrame");
+      const fileLabel = document.querySelector(".file-label");
 
       let frameRate = 30; // Assume 30 fps, can be adjusted
 
+      let currentVideoObjectUrl = null;
+
       videoFile.addEventListener("change", (e) => {
         const file = e.target.files[0];
-        if (file) {
-          const url = URL.createObjectURL(file);
-          video.src = url;
-          video.load();
+        if (!file) {
+          return;
         }
+
+        if (currentVideoObjectUrl) {
+          URL.revokeObjectURL(currentVideoObjectUrl);
+        }
+
+        const url = URL.createObjectURL(file);
+        currentVideoObjectUrl = url;
+
+        video.src = url;
+        video.load();
+
+        video.addEventListener(
+          "loadedmetadata",
+          () => {
+            durationSpan.textContent = video.duration.toFixed(2);
+            totalFramesSpan.textContent = Math.floor(video.duration * frameRate);
+            scrubber.max = video.duration;
+            scrubber.value = 0;
+            currentTimeSpan.textContent = "0.00";
+            currentFrameSpan.textContent = "0";
+          },
+          { once: true }
+        );
+
+        video.addEventListener(
+          "error",
+          () => {
+            alert("Unable to load selected video. Please select another file.");
+            console.error("Video load error", video.error);
+          },
+          { once: true }
+        );
+      });
+
+      fileLabel.addEventListener("click", (e) => {
+        e.preventDefault();
+        videoFile.click();
       });
 
       video.addEventListener("loadedmetadata", () => {
@@ -297,20 +365,26 @@
         stepFrame(1);
       });
 
-      const longPressConfig = { delay: 550, repeatAmount: 5 };
+      const longPressConfig = { delay: 550, repeatInterval: 120 };
       function attachLongPress(button, stepAmount) {
-        let timer;
+        let timeoutId;
+        let intervalId;
+
         const startLongPress = () => {
-          timer = setTimeout(() => {
-            stepFrame(stepAmount * longPressConfig.repeatAmount);
+          timeoutId = setTimeout(() => {
+            intervalId = setInterval(() => {
+              stepFrame(stepAmount);
+            }, longPressConfig.repeatInterval);
           }, longPressConfig.delay);
         };
+
         const clearLongPress = () => {
-          if (timer) {
-            clearTimeout(timer);
-            timer = null;
-          }
+          clearTimeout(timeoutId);
+          clearInterval(intervalId);
+          timeoutId = null;
+          intervalId = null;
         };
+
         button.addEventListener("mousedown", startLongPress);
         button.addEventListener("touchstart", startLongPress, { passive: true });
         button.addEventListener("mouseup", clearLongPress);
@@ -322,13 +396,26 @@
       attachLongPress(prevFrame, -1);
       attachLongPress(nextFrame, 1);
 
+      function setupActiveState(button) {
+        button.addEventListener("mousedown", () => button.classList.add("active"));
+        button.addEventListener("mouseup", () => button.classList.remove("active"));
+        button.addEventListener("mouseleave", () => button.classList.remove("active"));
+        button.addEventListener("touchstart", () => button.classList.add("active"), { passive: true });
+        button.addEventListener("touchend", () => button.classList.remove("active"));
+        button.addEventListener("touchcancel", () => button.classList.remove("active"));
+      }
+
+      [playPause, stop, mute, prevFrame, nextFrame, screenshot].forEach(setupActiveState);
+
       playPause.addEventListener("click", () => {
         if (video.paused) {
           video.play();
           playPause.innerHTML = "&#9208;";
+          playPause.classList.add("active");
         } else {
           video.pause();
           playPause.innerHTML = "&#9654;";
+          playPause.classList.remove("active");
         }
       });
 
@@ -336,7 +423,46 @@
         video.pause();
         video.currentTime = 0;
         playPause.innerHTML = "&#9654;";
+        playPause.classList.remove("active");
       });
+
+      mute.addEventListener("click", () => {
+        video.muted = !video.muted;
+        mute.innerHTML = video.muted ? "&#128263;" : "&#128266;";
+        mute.classList.toggle("active", !video.muted);
+      });
+
+      scrubber.addEventListener("input", (event) => {
+        const newTime = parseFloat(event.target.value);
+        if (!Number.isNaN(newTime)) {
+          video.currentTime = newTime;
+        }
+      });
+
+      scrubber.addEventListener("change", (event) => {
+        const newTime = parseFloat(event.target.value);
+        if (!Number.isNaN(newTime)) {
+          video.currentTime = newTime;
+        }
+      });
+
+      video.addEventListener("ended", () => {
+        playPause.innerHTML = "&#9654;";
+        playPause.classList.remove("active");
+      });
+
+      video.addEventListener("play", () => {
+        playPause.innerHTML = "&#9208;";
+        playPause.classList.add("active");
+      });
+
+      video.addEventListener("pause", () => {
+        playPause.innerHTML = "&#9654;";
+        playPause.classList.remove("active");
+      });
+      video.pause();
+      video.currentTime = 0;
+      playPause.innerHTML = "&#9654;";
 
       mute.addEventListener("click", () => {
         video.muted = !video.muted;
@@ -384,7 +510,8 @@
             link.remove();
           }, 300);
 
-          alert("Screenshot captured and download started. Save it to Photos from your device gallery.");
+          // Browser downloads are controlled by user agent; cannot force direct save to Photos app.
+          // On mobile, save the downloaded file from the files/download folder to Photos manually if needed.
         }, "image/png");
       });
     </script>
