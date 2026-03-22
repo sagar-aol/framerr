@@ -32,7 +32,7 @@
         color: #ffffff;
         margin-bottom: 20px;
         font-weight: 700;
-        font-size: 24px;
+        font-size: 20px;
         font-family: "Playfair Display", serif;
         display: flex;
         align-items: center;
@@ -40,7 +40,7 @@
       }
       .logo-icon {
         font-size: 28px;
-        animation: pulse 2s ease-in-out infinite;
+        animation: pulse 1.5s ease-in-out infinite;
       }
       @keyframes pulse {
         0%,
@@ -81,7 +81,7 @@
         font-size: 48px;
         color: #ffffff7a;
         opacity: 0;
-        transition: opacity 0.5s ease;
+        transition: opacity 0.2s ease;
         z-index: 1100;
         pointer-events: none;
         background: rgb(255 255 255 / 7%);
@@ -113,9 +113,9 @@
         align-items: center;
         justify-content: center;
         transition:
-          background-color 0.2s ease,
-          transform 0.15s ease,
-          box-shadow 0.15s ease;
+          background-color 0.1s ease,
+          transform 0.1s ease,
+          box-shadow 0.1s ease;
         box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6);
       }
       button:hover {
@@ -143,15 +143,24 @@
         background-color: #47b663;
       }
       #mute {
-        padding: 1rem;
-        position: absolute;
-        bottom: 0;
-        left: 5px;
-        width: 10px;
-        height: 10px;
-        font-size: 16px;
+        padding: 0.25rem;
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
         font-weight: 700;
-        z-index: 1200;
+        z-index: 1300;
+        background-color: #333;
+        border: none;
+        border-radius: 50%;
+        color: #fff;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.3s ease;
+      }
+      #mute:hover {
+        background-color: #555;
       }
       .header {
         display: flex;
@@ -169,40 +178,40 @@
         gap: 10px;
       }
       .info-btn {
-        width: 30px;
-        height: 30px;
+        width: 20px;
+        height: 20px;
         border: none;
         border-radius: 50%;
         background-color: #333;
         color: #fff;
-        font-size: 16px;
+        font-size: 18px;
         font-weight: bold;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: background-color 0.3s ease;
+        transition: background-color 0.15s ease;
       }
       .info-btn:hover {
         background-color: #555;
       }
       .file-label {
-        width: 45px;
+        width: 40px;
         z-index: 1300;
         position: relative;
-        height: 45px;
+        height: 40px;
         border: none;
         border-radius: 50%;
         background-color: #333;
         color: #fff;
-        font-size: 20px;
+        font-size: 18px;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
         transition:
-          background-color 0.3s ease,
-          transform 0.2s ease;
+          background-color 0.15s ease,
+          transform 0.15s ease;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
       }
       .file-label:hover {
@@ -249,9 +258,9 @@
         cursor: pointer;
         box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
       }
-      .info {
+      .video-info {
         display: flex;
-        justify-content: space-around;
+        justify-content: space-between;
         align-items: center;
         font-size: 12px;
         background-color: #1e1e1e;
@@ -262,6 +271,7 @@
         width: 100%;
         max-width: 800px;
         flex-wrap: wrap;
+        position: relative;
       }
       .info p {
         margin: 2px 5px;
@@ -278,24 +288,25 @@
         .header {
           margin-bottom: 10px;
         }
-        .file-label,
         button {
           width: 60px;
           height: 60px;
           font-size: 16px;
         }
         .file-label {
+          width: 40px;
+          height: 40px;
           font-size: 18px;
         }
         .controls {
           margin-bottom: 10px;
         }
-        .info {
+        .video-info {
           font-size: 10px;
           padding: 6px 8px;
           margin-bottom: 10px;
         }
-        .info p {
+        .video-info p {
           margin: 1px 3px;
         }
         video {
@@ -316,14 +327,14 @@
       </div>
     </div>
     <input type="file" id="videoFile" accept="video/*" />
-    <div class="info">
+    <div class="video-info">
       <p>Current Time: <span id="currentTime">0.00</span>s</p>
       <p>Duration: <span id="duration">0.00</span>s</p>
       <p>Frames: <span id="currentFrame">0</span>/<span id="totalFrames">0</span></p>
+      <button id="mute" title="Mute/Unmute">🔇</button>
     </div>
     <video id="video" class="video-fixed" playsinline webkit-playsinline muted></video>
     <div id="playPauseIndicator" class="indicator">▶️</div>
-    <button id="mute" title="Mute/Unmute">&#128266;</button>
     <div class="bottom-pane">
       <input type="range" id="scrubber" min="0" max="100" value="0" step="0.1" />
       <div class="controls">
@@ -383,7 +394,6 @@
             scrubber.value = 0;
             currentTimeSpan.textContent = "0.00";
             currentFrameSpan.textContent = "0";
-            video.muted = true;
             mute.innerHTML = "&#128263;";
             mute.classList.remove("active");
           },
@@ -410,11 +420,18 @@
       });
 
       video.addEventListener("click", () => {
-        if (video.paused) {
+        const wasPaused = video.paused;
+        if (wasPaused) {
           video.play();
+          playPauseIndicator.textContent = "⏸️";
         } else {
           video.pause();
+          playPauseIndicator.textContent = "▶️";
         }
+        playPauseIndicator.style.opacity = "1";
+        setTimeout(() => {
+          playPauseIndicator.style.opacity = "0";
+        }, 1000);
       });
 
       video.addEventListener("loadedmetadata", () => {
@@ -477,7 +494,11 @@
       attachLongPress(nextFrame, 1);
 
       speed.addEventListener("click", () => {
-        currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
+        if (currentSpeedIndex === 3) {
+          currentSpeedIndex = 0;
+        } else {
+          currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
+        }
         video.playbackRate = speeds[currentSpeedIndex];
         speed.textContent = speeds[currentSpeedIndex] + "x";
       });
@@ -596,14 +617,19 @@
         mute.classList.toggle("active", !video.muted);
       });
 
+      let scrubberStartValue = 0;
+      let videoTimeAtScrubStart = 0;
+
       scrubber.addEventListener("input", (event) => {
-        const newTime = parseFloat(event.target.value);
-        if (!Number.isNaN(newTime)) {
-          video.currentTime = newTime;
-        }
+        const scrubberDelta = parseFloat(event.target.value) - scrubberStartValue;
+        const speedMultiplier = video.playbackRate;
+        const newTime = videoTimeAtScrubStart + scrubberDelta * speedMultiplier;
+        video.currentTime = Math.max(0, Math.min(video.duration, newTime));
       });
 
       scrubber.addEventListener("mousedown", () => {
+        scrubberStartValue = parseFloat(scrubber.value);
+        videoTimeAtScrubStart = video.currentTime;
         if (!video.paused) {
           video.pause();
         }
@@ -612,6 +638,8 @@
       scrubber.addEventListener(
         "touchstart",
         () => {
+          scrubberStartValue = parseFloat(scrubber.value);
+          videoTimeAtScrubStart = video.currentTime;
           if (!video.paused) {
             video.pause();
           }
@@ -649,8 +677,6 @@
           playPauseIndicator.style.opacity = "0";
         }, 500);
       });
-      video.pause();
-      video.currentTime = 0;
       video.playbackRate = speeds[currentSpeedIndex];
 
       screenshot.addEventListener("click", () => {
