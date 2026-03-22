@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Framerr Video Editor</title>
+  <title>Framerr</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet" />
@@ -32,10 +32,10 @@
 
       /* Strict one-page app constraints */
       width: 100vw;
-      height: 100dvh; /* Modern viewport height, fixes mobile address bar jumping */
+      height: 100dvh;
       max-height: 100dvh;
       overflow: hidden;
-      touch-action: none; /* Disables all browser scrolling/bouncing */
+      touch-action: none;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
@@ -58,12 +58,9 @@
       height: var(--header-height);
       padding: env(safe-area-inset-top) 24px 0;
       box-sizing: border-box;
-
       display: flex;
       align-items: center;
       justify-content: space-between;
-
-      /* Glassmorphism */
       background: var(--glass-bg);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
@@ -124,10 +121,9 @@
       height: 56px;
     }
 
-    /* --- Responsive Desktop PC constraints --- */
     .max-width-wrapper {
       width: 100%;
-      max-width: 800px; /* Limits width on ultrawide monitors */
+      max-width: 800px;
       margin: 0 auto;
       display: flex;
       justify-content: space-between;
@@ -148,13 +144,10 @@
       padding: 16px;
       box-sizing: border-box;
       z-index: 10;
-
-      /* Subtle radial gradient to frame the video */
       background: radial-gradient(circle at center, #1a1a24 0%, #0d0d12 100%);
     }
 
     video {
-      /* This ensures the video perfectly scales inside its bounded box without overflowing */
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
@@ -164,7 +157,6 @@
       cursor: pointer;
     }
 
-    /* Screenshot Flash Effect */
     .flash-overlay {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -206,13 +198,10 @@
       height: var(--bottom-height);
       padding: 16px 24px calc(24px + env(safe-area-inset-bottom));
       box-sizing: border-box;
-
       display: flex;
       flex-direction: column;
       justify-content: center;
       gap: 20px;
-
-      /* Glassmorphism */
       background: var(--glass-bg);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
@@ -232,19 +221,11 @@
       font-weight: 500;
     }
 
-    .info-group {
-      display: flex;
-      gap: 16px;
-    }
-
+    .info-group { display: flex; gap: 16px; }
     .info-group span { color: var(--text-main); font-variant-numeric: tabular-nums; }
 
     /* --- Scrubber --- */
-    .scrubber-container {
-      width: 100%;
-      max-width: 800px;
-      margin: 0 auto;
-    }
+    .scrubber-container { width: 100%; max-width: 800px; margin: 0 auto; }
 
     input[type="range"] {
       -webkit-appearance: none;
@@ -272,9 +253,7 @@
       transition: transform 0.1s;
     }
 
-    input[type="range"]:active::-webkit-slider-thumb {
-      transform: scale(1.3);
-    }
+    input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.3); }
 
     /* --- Controls --- */
     .controls {
@@ -286,7 +265,6 @@
       margin: 0 auto;
     }
 
-    /* Media queries for smaller phones to ensure nothing clips */
     @media (max-width: 400px) {
       .btn-md { width: 50px; height: 50px; }
       .btn-lg { width: 56px; height: 56px; }
@@ -388,7 +366,6 @@
     function loadVideo(file) {
       if (!file) return;
       if (currentVideoUrl) URL.revokeObjectURL(currentVideoUrl);
-
       currentVideoUrl = URL.createObjectURL(file);
       DOM.video.src = currentVideoUrl;
       DOM.video.load();
@@ -400,8 +377,14 @@
     }
 
     function stepFrame(frames) {
+      if (!DOM.video.src) return;
       if (!DOM.video.paused) DOM.video.pause();
-      DOM.video.currentTime = Math.max(0, Math.min(DOM.video.duration, DOM.video.currentTime + (frames / FRAME_RATE)));
+
+      // Calculate exact frame index to prevent floating point drift
+      const currentFrameIndex = Math.round(DOM.video.currentTime * FRAME_RATE);
+      const targetTime = (currentFrameIndex + frames) / FRAME_RATE;
+
+      DOM.video.currentTime = Math.max(0, Math.min(DOM.video.duration, targetTime));
     }
 
     function showIndicator(iconName) {
@@ -417,8 +400,7 @@
     function triggerFlash() {
       DOM.flashOverlay.style.transition = 'none';
       DOM.flashOverlay.style.opacity = '1';
-      // Force reflow
-      void DOM.flashOverlay.offsetWidth;
+      void DOM.flashOverlay.offsetWidth; // Force reflow
       DOM.flashOverlay.style.transition = 'opacity 0.5s ease-out';
       DOM.flashOverlay.style.opacity = '0';
     }
@@ -434,27 +416,58 @@
     function updateTime() {
       const time = DOM.video.currentTime;
       DOM.currentTime.textContent = time.toFixed(2);
-      DOM.currentFrame.textContent = Math.floor(time * FRAME_RATE);
+      DOM.currentFrame.textContent = Math.round(time * FRAME_RATE);
       DOM.scrubber.value = time;
     }
 
-    // --- Interaction Helpers ---
+    // --- Smooth Frame Stepping Logic ---
 
     function bindPress(element, onStart, onEnd) {
       ['mousedown', 'touchstart'].forEach(e => element.addEventListener(e, onStart, { passive: true }));
       ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(e => element.addEventListener(e, onEnd, { passive: true }));
     }
 
-    function setupHoldRepeat(btn, action) {
-      let timeout, interval;
-      bindPress(btn, (e) => {
-        if (e.button && e.button !== 0) return;
-        action();
-        timeout = setTimeout(() => interval = setInterval(action, 80), 400);
-      }, () => {
-        clearTimeout(timeout);
-        clearInterval(interval);
-      });
+    function setupSmoothFrameStepping(btn, direction) {
+      let timeoutId;
+      let animationFrameId;
+      let lastTime = 0;
+
+      const startAction = (e) => {
+        if (e.button && e.button !== 0) return; // Ignore right clicks
+
+        // 1. Immediate exact one-frame step on tap
+        stepFrame(direction);
+
+        // 2. Wait for a delay before activating smooth continuous scrolling
+        timeoutId = setTimeout(() => {
+          lastTime = performance.now();
+
+          const loop = (currentTime) => {
+            const deltaTime = currentTime - lastTime;
+            const currentSpeedMultiplier = SPEEDS[currentSpeedIdx];
+
+            // Calculate ms required to pass one frame at the current playback speed
+            const msPerFrame = 1000 / (FRAME_RATE * currentSpeedMultiplier);
+
+            // Step exactly one frame when enough time has elapsed
+            if (deltaTime >= msPerFrame) {
+              const framesToStep = Math.floor(deltaTime / msPerFrame);
+              stepFrame(direction * framesToStep);
+              lastTime = currentTime - (deltaTime % msPerFrame); // carry over remainder
+            }
+            animationFrameId = requestAnimationFrame(loop);
+          };
+
+          animationFrameId = requestAnimationFrame(loop);
+        }, 400); // 400ms hold delay
+      };
+
+      const stopAction = () => {
+        clearTimeout(timeoutId);
+        cancelAnimationFrame(animationFrameId);
+      };
+
+      bindPress(btn, startAction, stopAction);
     }
 
     // --- Screenshots ---
@@ -470,14 +483,12 @@
 
     function downloadScreenshot() {
       if (!DOM.video.paused) DOM.video.pause();
-
       triggerFlash();
-
       getScreenshotBlob((blob) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `frame-${Math.floor(DOM.video.currentTime * FRAME_RATE)}.png`;
+        a.download = `frame-${Math.round(DOM.video.currentTime * FRAME_RATE)}.png`;
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 100);
       });
@@ -513,8 +524,9 @@
       DOM.muteBtn.classList.toggle("active", DOM.video.muted);
     });
 
-    setupHoldRepeat(DOM.prevFrameBtn, () => stepFrame(-1));
-    setupHoldRepeat(DOM.nextFrameBtn, () => stepFrame(1));
+    // Attach the new smooth, speed-linked stepping
+    setupSmoothFrameStepping(DOM.prevFrameBtn, -1);
+    setupSmoothFrameStepping(DOM.nextFrameBtn, 1);
 
     DOM.screenshotBtn.addEventListener("click", downloadScreenshot);
 
