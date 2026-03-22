@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Framerr</title>
+  <title>Framerr Video Editor</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet" />
@@ -35,9 +35,10 @@
       height: 100dvh;
       max-height: 100dvh;
       overflow: hidden;
-      touch-action: none;
+      touch-action: none; /* Prevents all native browser scrolling/zooming */
       -webkit-tap-highlight-color: transparent;
       user-select: none;
+      -webkit-user-select: none;
     }
 
     .app-container {
@@ -229,6 +230,7 @@
 
     input[type="range"] {
       -webkit-appearance: none;
+      appearance: none;
       width: 100%;
       background: transparent;
       margin: 0;
@@ -380,7 +382,6 @@
       if (!DOM.video.src) return;
       if (!DOM.video.paused) DOM.video.pause();
 
-      // Calculate exact frame index to prevent floating point drift
       const currentFrameIndex = Math.round(DOM.video.currentTime * FRAME_RATE);
       const targetTime = (currentFrameIndex + frames) / FRAME_RATE;
 
@@ -400,7 +401,7 @@
     function triggerFlash() {
       DOM.flashOverlay.style.transition = 'none';
       DOM.flashOverlay.style.opacity = '1';
-      void DOM.flashOverlay.offsetWidth; // Force reflow
+      void DOM.flashOverlay.offsetWidth;
       DOM.flashOverlay.style.transition = 'opacity 0.5s ease-out';
       DOM.flashOverlay.style.opacity = '0';
     }
@@ -420,49 +421,62 @@
       DOM.scrubber.value = time;
     }
 
-    // --- Smooth Frame Stepping Logic ---
+    // --- Pointer Event Binder (Replaces Mouse/Touch for Mobile Precision) ---
 
     function bindPress(element, onStart, onEnd) {
-      ['mousedown', 'touchstart'].forEach(e => element.addEventListener(e, onStart, { passive: true }));
-      ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(e => element.addEventListener(e, onEnd, { passive: true }));
+      // Prevent native context menu (text selection, save image) on long press
+      element.addEventListener('contextmenu', e => e.preventDefault());
+
+      element.addEventListener('pointerdown', onStart);
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach(e => {
+        element.addEventListener(e, onEnd);
+      });
     }
+
+    // --- Rock-Solid Smooth Frame Stepping ---
 
     function setupSmoothFrameStepping(btn, direction) {
       let timeoutId;
       let animationFrameId;
       let lastTime = 0;
+      let isHeld = false;
 
       const startAction = (e) => {
-        if (e.button && e.button !== 0) return; // Ignore right clicks
+        // Only react to main button (left click or touch), ignore right clicks
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+        isHeld = true;
 
         // 1. Immediate exact one-frame step on tap
         stepFrame(direction);
 
-        // 2. Wait for a delay before activating smooth continuous scrolling
+        // 2. Wait 500ms before activating continuous scrolling
         timeoutId = setTimeout(() => {
+          if (!isHeld) return; // Failsafe
+
           lastTime = performance.now();
 
           const loop = (currentTime) => {
+            if (!isHeld) return; // Stop immediately if released
+
             const deltaTime = currentTime - lastTime;
             const currentSpeedMultiplier = SPEEDS[currentSpeedIdx];
-
-            // Calculate ms required to pass one frame at the current playback speed
             const msPerFrame = 1000 / (FRAME_RATE * currentSpeedMultiplier);
 
-            // Step exactly one frame when enough time has elapsed
             if (deltaTime >= msPerFrame) {
               const framesToStep = Math.floor(deltaTime / msPerFrame);
               stepFrame(direction * framesToStep);
-              lastTime = currentTime - (deltaTime % msPerFrame); // carry over remainder
+              lastTime = currentTime - (deltaTime % msPerFrame);
             }
             animationFrameId = requestAnimationFrame(loop);
           };
 
           animationFrameId = requestAnimationFrame(loop);
-        }, 400); // 400ms hold delay
+        }, 500);
       };
 
       const stopAction = () => {
+        isHeld = false;
         clearTimeout(timeoutId);
         cancelAnimationFrame(animationFrameId);
       };
@@ -524,7 +538,7 @@
       DOM.muteBtn.classList.toggle("active", DOM.video.muted);
     });
 
-    // Attach the new smooth, speed-linked stepping
+    // Attach strict pointer logic to frame buttons
     setupSmoothFrameStepping(DOM.prevFrameBtn, -1);
     setupSmoothFrameStepping(DOM.nextFrameBtn, 1);
 
@@ -534,9 +548,10 @@
       DOM.video.currentTime = e.target.value;
     });
 
+    // Scrubber also gets pointer events for cleaner interaction
     bindPress(DOM.scrubber,
       () => { wasPlayingBeforeScrub = !DOM.video.paused; DOM.video.pause(); },
-      (e) => { if (e.type.match(/mouseup|touchend/) && wasPlayingBeforeScrub) DOM.video.play(); }
+      () => { if (wasPlayingBeforeScrub) DOM.video.play(); }
     );
 
   </script>
