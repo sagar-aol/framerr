@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Framerr Video Editor</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
@@ -16,40 +16,59 @@
       --accent-color: #ffffff;
       --text-main: #ffffff;
       --text-muted: #8a8a9e;
-      --glass-bg: rgba(20, 20, 28, 0.85);
+      --glass-bg: rgba(13, 13, 18, 0.75);
+
+      /* Layout variables */
+      --header-height: calc(76px + env(safe-area-inset-top));
+      --bottom-height: calc(150px + env(safe-area-inset-bottom));
     }
 
     body {
       margin: 0;
+      padding: 0;
       font-family: "Inter", sans-serif;
       background-color: var(--bg-color);
       color: var(--text-main);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
+
+      /* Strict one-page app constraints */
+      width: 100vw;
+      height: 100dvh; /* Modern viewport height, fixes mobile address bar jumping */
+      max-height: 100dvh;
       overflow: hidden;
-      touch-action: manipulation;
+      touch-action: none; /* Disables all browser scrolling/bouncing */
       -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
 
     .app-container {
       width: 100%;
-      max-width: 900px;
+      height: 100%;
+      position: relative;
       display: flex;
       flex-direction: column;
-      height: 100vh;
-      position: relative;
+      align-items: center;
     }
 
     /* --- Header --- */
     .header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: var(--header-height);
+      padding: env(safe-area-inset-top) 24px 0;
+      box-sizing: border-box;
+
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 20px 24px;
-      z-index: 10;
+
+      /* Glassmorphism */
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      z-index: 100;
     }
 
     h1 {
@@ -62,7 +81,6 @@
       letter-spacing: 0.5px;
     }
 
-    /* Cinematic Logo Animation */
     h1 .material-symbols-rounded {
       color: var(--text-main);
       animation: cinematicBreath 3.5s ease-in-out infinite;
@@ -70,16 +88,8 @@
     }
 
     @keyframes cinematicBreath {
-      0%, 100% {
-        transform: scale(1) rotate(0deg);
-        opacity: 0.8;
-        text-shadow: 0 0 5px rgba(255, 255, 255, 0.1);
-      }
-      50% {
-        transform: scale(1.15) rotate(4deg);
-        opacity: 1;
-        text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
-      }
+      0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.8; text-shadow: 0 0 5px rgba(255, 255, 255, 0.1); }
+      50% { transform: scale(1.15) rotate(4deg); opacity: 1; text-shadow: 0 0 15px rgba(255, 255, 255, 0.5); }
     }
 
     input[type="file"] { display: none; }
@@ -95,22 +105,11 @@
       justify-content: center;
       cursor: pointer;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
-    .btn:hover {
-      background: var(--surface-hover);
-      transform: translateY(-2px);
-    }
-
-    .btn:active {
-      transform: translateY(1px) scale(0.95);
-    }
-
-    .btn.active {
-      background: var(--accent-color);
-      color: var(--bg-color);
-    }
+    .btn:active { transform: scale(0.92); }
+    .btn.active { background: var(--accent-color); color: var(--bg-color); }
 
     .btn-sm { width: 40px; height: 40px; }
     .btn-md { width: 56px; height: 56px; }
@@ -125,24 +124,55 @@
       height: 56px;
     }
 
-    /* --- Video Area --- */
+    /* --- Responsive Desktop PC constraints --- */
+    .max-width-wrapper {
+      width: 100%;
+      max-width: 800px; /* Limits width on ultrawide monitors */
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* --- Fixed Video Area --- */
     .video-wrapper {
-      position: relative;
-      flex-grow: 1;
+      position: absolute;
+      top: var(--header-height);
+      bottom: var(--bottom-height);
+      left: 0;
+      right: 0;
+      width: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 0 20px;
-      margin-bottom: 140px;
+      padding: 16px;
+      box-sizing: border-box;
+      z-index: 10;
+
+      /* Subtle radial gradient to frame the video */
+      background: radial-gradient(circle at center, #1a1a24 0%, #0d0d12 100%);
     }
 
     video {
+      /* This ensures the video perfectly scales inside its bounded box without overflowing */
       max-width: 100%;
       max-height: 100%;
+      object-fit: contain;
       border-radius: 12px;
-      background: #000;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+      background: transparent;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
       cursor: pointer;
+    }
+
+    /* Screenshot Flash Effect */
+    .flash-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: white;
+      border-radius: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease-out;
     }
 
     .indicator {
@@ -173,19 +203,27 @@
       bottom: 0;
       left: 0;
       width: 100%;
-      background: var(--glass-bg);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-      padding: 20px 24px 30px;
+      height: var(--bottom-height);
+      padding: 16px 24px calc(24px + env(safe-area-inset-bottom));
       box-sizing: border-box;
+
       display: flex;
       flex-direction: column;
+      justify-content: center;
       gap: 20px;
-      z-index: 20;
+
+      /* Glassmorphism */
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      z-index: 100;
     }
 
     .video-info {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -199,9 +237,15 @@
       gap: 16px;
     }
 
-    .info-group span { color: var(--text-main); }
+    .info-group span { color: var(--text-main); font-variant-numeric: tabular-nums; }
 
     /* --- Scrubber --- */
+    .scrubber-container {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
     input[type="range"] {
       -webkit-appearance: none;
       width: 100%;
@@ -213,18 +257,18 @@
     input[type="range"]::-webkit-slider-runnable-track {
       width: 100%;
       height: 6px;
-      background: var(--surface-color);
+      background: var(--surface-hover);
       border-radius: 3px;
     }
 
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      height: 16px;
-      width: 16px;
+      height: 18px;
+      width: 18px;
       border-radius: 50%;
       background: var(--accent-color);
-      margin-top: -5px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.5);
+      margin-top: -6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.6);
       transition: transform 0.1s;
     }
 
@@ -242,36 +286,42 @@
       margin: 0 auto;
     }
 
-    @media (max-width: 600px) {
-      .header { padding: 15px; }
-      h1 { font-size: 20px; }
+    /* Media queries for smaller phones to ensure nothing clips */
+    @media (max-width: 400px) {
       .btn-md { width: 50px; height: 50px; }
       .btn-lg { width: 56px; height: 56px; }
       .btn-text { height: 50px; font-size: 14px; }
-      .bottom-pane { padding: 15px 15px 20px; }
-      .info-group { flex-direction: column; gap: 4px; font-size: 12px; }
+      .info-group { gap: 10px; font-size: 11px; }
     }
   </style>
 </head>
 <body>
 
   <div class="app-container">
+
     <div class="header">
-      <h1>Framerr <span class="material-symbols-rounded">movie</span></h1>
-      <label for="videoFile" class="btn btn-sm" title="Choose Video File">
-        <span class="material-symbols-rounded">folder_open</span>
-      </label>
-      <input type="file" id="videoFile" accept="video/*" />
+      <div class="max-width-wrapper">
+        <h1>Framerr <span class="material-symbols-rounded">movie</span></h1>
+        <label for="videoFile" class="btn btn-sm" title="Choose Video File">
+          <span class="material-symbols-rounded">folder_open</span>
+        </label>
+        <input type="file" id="videoFile" accept="video/*" />
+      </div>
     </div>
 
-    <div class="video-wrapper">
-      <video id="video" playsinline webkit-playsinline muted></video>
+    <div class="video-wrapper" id="videoWrapper">
+      <div style="position: relative; max-width: 100%; max-height: 100%; display: flex; align-items: center; justify-content: center;">
+        <video id="video" playsinline webkit-playsinline muted></video>
+        <div id="flashOverlay" class="flash-overlay"></div>
+      </div>
+
       <div id="playPauseIndicator" class="indicator">
         <span class="material-symbols-rounded" id="indicatorIcon">play_arrow</span>
       </div>
     </div>
 
     <div class="bottom-pane">
+
       <div class="video-info">
         <div class="info-group">
           <div><span id="currentTime">0.00</span>s / <span id="duration">0.00</span>s</div>
@@ -282,7 +332,9 @@
         </button>
       </div>
 
-      <input type="range" id="scrubber" min="0" max="100" value="0" step="0.01" />
+      <div class="scrubber-container">
+        <input type="range" id="scrubber" min="0" max="100" value="0" step="0.01" />
+      </div>
 
       <div class="controls">
         <button id="speedBtn" class="btn btn-text" title="Playback Speed">1x</button>
@@ -299,11 +351,11 @@
           <span class="material-symbols-rounded">photo_camera</span>
         </button>
       </div>
+
     </div>
   </div>
 
   <script>
-    // DOM Elements
     const DOM = {
       videoFile: document.getElementById("videoFile"),
       video: document.getElementById("video"),
@@ -322,9 +374,9 @@
       currentFrame: document.getElementById("currentFrame"),
       indicator: document.getElementById("playPauseIndicator"),
       indicatorIcon: document.getElementById("indicatorIcon"),
+      flashOverlay: document.getElementById("flashOverlay"),
     };
 
-    // State
     const FRAME_RATE = 30;
     const SPEEDS = [0.25, 0.5, 0.75, 1, 1.5, 2];
     let currentSpeedIdx = 3;
@@ -362,6 +414,15 @@
       }, 500);
     }
 
+    function triggerFlash() {
+      DOM.flashOverlay.style.transition = 'none';
+      DOM.flashOverlay.style.opacity = '1';
+      // Force reflow
+      void DOM.flashOverlay.offsetWidth;
+      DOM.flashOverlay.style.transition = 'opacity 0.5s ease-out';
+      DOM.flashOverlay.style.opacity = '0';
+    }
+
     function updateMetadata() {
       const dur = DOM.video.duration;
       if(isNaN(dur)) return;
@@ -387,8 +448,8 @@
     function setupHoldRepeat(btn, action) {
       let timeout, interval;
       bindPress(btn, (e) => {
-        if (e.button && e.button !== 0) return; // Ignore right clicks
-        action(); // Trigger once instantly
+        if (e.button && e.button !== 0) return;
+        action();
         timeout = setTimeout(() => interval = setInterval(action, 80), 400);
       }, () => {
         clearTimeout(timeout);
@@ -409,6 +470,9 @@
 
     function downloadScreenshot() {
       if (!DOM.video.paused) DOM.video.pause();
+
+      triggerFlash();
+
       getScreenshotBlob((blob) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -421,10 +485,8 @@
 
     // --- Event Listeners ---
 
-    // File Loading
     DOM.videoFile.addEventListener("change", (e) => loadVideo(e.target.files[0]));
 
-    // Video Events
     DOM.video.addEventListener("loadedmetadata", updateMetadata);
     DOM.video.addEventListener("timeupdate", updateTime);
     DOM.video.addEventListener("play", () => {
@@ -437,7 +499,6 @@
     });
     DOM.video.addEventListener("click", togglePlay);
 
-    // Controls
     DOM.playPauseBtn.addEventListener("click", togglePlay);
 
     DOM.speedBtn.addEventListener("click", () => {
@@ -452,14 +513,11 @@
       DOM.muteBtn.classList.toggle("active", DOM.video.muted);
     });
 
-    // Frame Stepping (Hold to repeat)
     setupHoldRepeat(DOM.prevFrameBtn, () => stepFrame(-1));
     setupHoldRepeat(DOM.nextFrameBtn, () => stepFrame(1));
 
-    // Screenshot (Simple click)
     DOM.screenshotBtn.addEventListener("click", downloadScreenshot);
 
-    // Scrubber Logic
     DOM.scrubber.addEventListener("input", (e) => {
       DOM.video.currentTime = e.target.value;
     });
