@@ -334,7 +334,7 @@
         <div class="max-width-wrapper">
           <div class="title-group">
             <h1>Framerr <span class="material-symbols-rounded">movie</span></h1>
-            <span class="version-info">ver 1.3.0</span>
+            <span class="version-info">ver 1.3.1</span>
           </div>
           <label for="videoFile" class="btn btn-sm" title="Choose Video File">
             <span class="material-symbols-rounded">folder_open</span>
@@ -497,7 +497,7 @@
             const loop = (currentTime) => {
               if (!isHeld) return;
               const deltaTime = currentTime - lastTime;
-              const msPerFrame = 195;
+              const msPerFrame = 220;
 
               if (deltaTime >= msPerFrame) {
                 stepFrame(direction);
