@@ -341,13 +341,13 @@ Here is `ver 1.7.0` with the Jog Wheel engine built natively into the UI:
     .playback-group {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 25px;
       justify-content: center;
     }
 
     @media (max-width: 400px) {
       .btn-md { width: 50px; height: 50px; }
-      .btn-lg { width: 56px; height: 56px; }
+      .btn-lg { width: 70px; height: 70px; }
       .btn-text { height: 50px; font-size: 14px; }
       .info-group { gap: 10px; font-size: 11px; }
       .playback-group { gap: 12px; }
@@ -434,13 +434,13 @@ Here is `ver 1.7.0` with the Jog Wheel engine built natively into the UI:
         </select>
 
         <div class="playback-group">
-          <button id="prevFrameBtn" class="btn btn-md" title="Previous Frame">
+          <button id="prevFrameBtn" class="btn btn-lg" title="Previous Frame">
             <svg class="icon"><use href="#icon-skip_previous"></use></svg>
           </button>
-          <button id="playPauseBtn" class="btn btn-lg" style="background: var(--text-main); color: var(--bg-color);" title="Play/Pause">
+          <button id="playPauseBtn" class="btn btn-md" style="background: var(--text-main); color: var(--bg-color);" title="Play/Pause">
             <svg class="icon icon-lg" id="playIcon"><use href="#icon-play_arrow"></use></svg>
           </button>
-          <button id="nextFrameBtn" class="btn btn-md" title="Next Frame">
+          <button id="nextFrameBtn" class="btn btn-lg" title="Next Frame">
             <svg class="icon"><use href="#icon-skip_next"></use></svg>
           </button>
         </div>
