@@ -1,792 +1,738 @@
-```html
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>Framerr Video Editor</title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Framerr Video Editor</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
 
-    <style>
-      /* --- Architecture & Variables --- */
-      :root {
-        --bg-color: #0d0d12;
-        --surface-color: #1a1a24;
-        --surface-hover: #262635;
-        --accent-color: #ffffff;
-        --text-main: #ffffff;
-        --text-muted: #8a8a9e;
-        --glass-bg: rgba(13, 13, 18, 0.75);
+  <style>
+    :root {
+      --bg-color: #0d0d12;
+      --surface-color: #1a1a24;
+      --surface-hover: #262635;
+      --accent-color: #ffffff;
+      --text-main: #ffffff;
+      --text-muted: #8a8a9e;
+      --glass-bg: rgba(13, 13, 18, 0.75);
+      --header-height: calc(124px + env(safe-area-inset-top));
+      --bottom-height: calc(136px + env(safe-area-inset-bottom));
+    }
 
-        --header-height: calc(124px + env(safe-area-inset-top));
-        --bottom-height: calc(136px + env(safe-area-inset-bottom));
-      }
+    *, *::before, *::after {
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      box-sizing: border-box;
+    }
 
-      *,
-      *::before,
-      *::after {
-        user-select: none;
-        -webkit-user-select: none;
-        -webkit-touch-callout: none;
-        box-sizing: border-box;
-      }
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: "Inter", sans-serif;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-      body,
-      html {
-        margin: 0;
-        padding: 0;
-        width: 100vw;
-        height: 100vh;
-        height: 100dvh;
-        overflow: hidden;
-        background-color: var(--bg-color);
-        color: var(--text-main);
-        font-family: "Inter", sans-serif;
-        touch-action: none;
-        -webkit-tap-highlight-color: transparent;
-      }
+    .app-container {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
 
-      /* --- Core Spatial Layout --- */
-      .app-container {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-      }
+    .header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: var(--header-height);
+      padding: env(safe-area-inset-top) 24px 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      z-index: 100;
+    }
 
-      .header {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: var(--header-height);
-        padding: env(safe-area-inset-top) 24px 0;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        background: var(--glass-bg);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        z-index: 100;
-      }
+    .video-wrapper {
+      position: absolute;
+      top: var(--header-height);
+      bottom: var(--bottom-height);
+      left: 0;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: radial-gradient(circle at center, #1a1a24 0%, #0d0d12 100%);
+      z-index: 10;
+      overflow: hidden;
+    }
 
-      .video-wrapper {
-        position: absolute;
-        top: var(--header-height);
-        bottom: var(--bottom-height);
-        left: 0;
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 16px;
-        background: radial-gradient(circle at center, #1a1a24 0%, #0d0d12 100%);
-        z-index: 10;
-        overflow: hidden;
-      }
+    .bottom-pane {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: var(--bottom-height);
+      padding: 16px 24px calc(24px + env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 20px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      z-index: 100;
+    }
 
-      .bottom-pane {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        height: var(--bottom-height);
-        padding: 16px 24px calc(24px + env(safe-area-inset-bottom));
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        gap: 20px;
-        background: var(--glass-bg);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
-        z-index: 100;
-      }
+    .header-content {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
 
-      /* --- Header Sub-Layout --- */
-      .header-content {
-        width: 100%;
-        max-width: 800px;
-        margin: 0 auto;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-      }
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
 
-      .header-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-      }
+    .action-group {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
 
-      .title-group {
-        display: flex;
-        flex-direction: column;
-      }
+    .title-group {
+      display: flex;
+      flex-direction: column;
+    }
 
-      h1 {
-        margin: 0;
-        font-family: "Playfair Display", serif;
-        font-size: 24px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
+    h1 {
+      margin: 0;
+      font-family: "Playfair Display", serif;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-      .version-info {
-        font-size: 10px;
-        color: var(--text-muted);
-        font-weight: 500;
-        letter-spacing: 0.5px;
-      }
+    .version-info {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
 
-      .logo-icon {
-        width: 28px;
-        height: 28px;
-        fill: var(--text-main);
-        animation: cinematicBreath 3.5s ease-in-out infinite;
-        transform-origin: center;
-      }
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+      fill: var(--text-main);
+      animation: cinematicBreath 3.5s ease-in-out infinite;
+      transform-origin: center;
+    }
 
-      @keyframes cinematicBreath {
-        0%,
-        100% {
-          transform: scale(1) rotate(0deg);
-          opacity: 0.8;
-          filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.1));
-        }
-        50% {
-          transform: scale(1.15) rotate(4deg);
-          opacity: 1;
-          filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5));
-        }
-      }
+    @keyframes cinematicBreath {
+      0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.8; filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.1)); }
+      50% { transform: scale(1.15) rotate(4deg); opacity: 1; filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5)); }
+    }
 
-      input[type="file"] {
-        display: none;
-      }
+    input[type="file"] { display: none; }
 
-      /* --- UI Primitives --- */
-      .btn {
-        background: var(--surface-color);
-        color: var(--text-main);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      }
-      .btn:active {
-        transform: scale(0.92);
-      }
-      .btn.active {
-        background: var(--accent-color);
-        color: var(--bg-color);
-      }
+    .btn {
+      background: var(--surface-color);
+      color: var(--text-main);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    .btn:active { transform: scale(0.92); }
+    .btn.active { background: var(--accent-color); color: var(--bg-color); }
 
-      .btn-sm {
-        width: 40px;
-        height: 40px;
-      }
-      .btn-md {
-        width: 56px;
-        height: 56px;
-      }
-      .btn-lg {
-        width: 64px;
-        height: 64px;
-      }
+    .btn-sm { width: 40px; height: 40px; }
+    .btn-md { width: 56px; height: 56px; }
+    .btn-lg { width: 64px; height: 64px; }
 
-      .btn-text {
-        border-radius: 16px;
-        font-weight: 600;
-        font-size: 16px;
-        height: 56px;
-      }
+    .btn-text {
+      border-radius: 16px;
+      font-weight: 600;
+      font-size: 16px;
+      height: 56px;
+    }
 
-      .icon {
-        width: 24px;
-        height: 24px;
-        fill: currentColor;
-        pointer-events: none;
-      }
+    .icon {
+      width: 24px;
+      height: 24px;
+      fill: currentColor;
+      pointer-events: none;
+    }
 
-      .icon-lg {
-        width: 32px;
-        height: 32px;
-      }
+    .icon-lg {
+      width: 32px;
+      height: 32px;
+    }
 
-      /* --- Select Dropdown Specifics --- */
-      select.speed-select {
-        appearance: none;
-        -webkit-appearance: none;
-        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
-        background-repeat: no-repeat;
-        background-position: right 8px center;
-        padding-right: 32px;
-        padding-left: 16px;
-        outline: none;
-        text-align: center;
-        font-family: "Inter", sans-serif;
-      }
+    select.speed-select {
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      padding-right: 32px;
+      padding-left: 16px;
+      outline: none;
+      text-align: center;
+      font-family: "Inter", sans-serif;
+    }
 
-      video {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        border-radius: 12px;
-        transform-origin: 0 0;
-        will-change: transform;
-        pointer-events: none;
-      }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 12px;
+      transform-origin: 0 0;
+      will-change: transform;
+      pointer-events: none;
+    }
 
-      /* --- Metrics Display --- */
-      .video-info {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 13px;
-        color: var(--text-muted);
-        font-weight: 500;
-        width: 100%;
-      }
+    .video-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+      width: 100%;
+    }
 
-      .info-group {
-        display: flex;
-        gap: 16px;
-        align-items: center;
-      }
-      .info-group span {
-        color: var(--text-main);
-        font-variant-numeric: tabular-nums;
-        display: inline-block;
-        text-align: right;
-      }
+    .info-group { display: flex; gap: 16px; align-items: center; }
+    .info-group span {
+      color: var(--text-main);
+      font-variant-numeric: tabular-nums;
+      display: inline-block;
+      text-align: right;
+    }
 
-      #currentTime,
-      #duration {
-        min-width: 48px;
-      }
-      #currentFrame,
-      #totalFrames {
-        min-width: 36px;
-      }
+    #currentTime, #duration { min-width: 48px; }
+    #currentFrame, #totalFrames { min-width: 36px; }
 
-      /* --- Controls Layout --- */
-      .scrubber-container {
-        width: 100%;
-        max-width: 800px;
-        margin: 0 auto;
-      }
+    .scrubber-container { width: 100%; max-width: 800px; margin: 0 auto; }
 
-      input[type="range"] {
-        -webkit-appearance: none;
-        width: 100%;
-        background: transparent;
-        margin: 0;
-        cursor: pointer;
-      }
-      input[type="range"]::-webkit-slider-runnable-track {
-        width: 100%;
-        height: 6px;
-        background: var(--surface-hover);
-        border-radius: 3px;
-      }
-      input[type="range"]::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        height: 18px;
-        width: 18px;
-        border-radius: 50%;
-        background: var(--accent-color);
-        margin-top: -6px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-        transition: transform 0.1s;
-      }
-      input[type="range"]:active::-webkit-slider-thumb {
-        transform: scale(1.3);
-      }
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: transparent;
+      margin: 0;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 6px;
+      background: var(--surface-hover);
+      border-radius: 3px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 18px;
+      width: 18px;
+      border-radius: 50%;
+      background: var(--accent-color);
+      margin-top: -6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+      transition: transform 0.1s;
+    }
+    input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.3); }
 
-      .controls {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-        max-width: 500px;
-        margin: 0 auto;
-      }
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      max-width: 500px;
+      margin: 0 auto;
+    }
 
-      /* --- Screen Adaptability --- */
-      @media (max-width: 400px) {
-        .btn-md {
-          width: 50px;
-          height: 50px;
-        }
-        .btn-lg {
-          width: 56px;
-          height: 56px;
-        }
-        .btn-text {
-          height: 50px;
-          font-size: 14px;
-        }
-        .info-group {
-          gap: 10px;
-          font-size: 11px;
-        }
-        #currentTime,
-        #duration {
-          min-width: 42px;
-        }
-        #currentFrame,
-        #totalFrames {
-          min-width: 30px;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <!-- --- Inline SVG Sprite Map (Content Blocker Immune) --- -->
-    <svg style="display: none" xmlns="http://www.w3.org/2000/svg">
-      <symbol id="icon-movie" viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z" /></symbol>
-      <symbol id="icon-folder_open" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" /></symbol>
-      <symbol id="icon-play_arrow" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></symbol>
-      <symbol id="icon-pause" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></symbol>
-      <symbol id="icon-volume_off" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" /></symbol>
-      <symbol id="icon-volume_up" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" /></symbol>
-      <symbol id="icon-skip_previous" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" /></symbol>
-      <symbol id="icon-skip_next" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" /></symbol>
-      <symbol id="icon-photo_camera" viewBox="0 0 24 24"><path d="M12 12c1.65 0 3 1.35 3 3s-1.35 3-3 3-3-1.35-3-3 1.35-3 3-3zm0 2c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm6-7h-3.17L13 5h-2L9.17 7H6c-1.1 0-2 .9-2 2v9c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z" /></symbol>
-    </svg>
+    @media (max-width: 400px) {
+      .btn-md { width: 50px; height: 50px; }
+      .btn-lg { width: 56px; height: 56px; }
+      .btn-text { height: 50px; font-size: 14px; }
+      .info-group { gap: 10px; font-size: 11px; }
+      #currentTime, #duration { min-width: 42px; }
+      #currentFrame, #totalFrames { min-width: 30px; }
+    }
+  </style>
+</head>
+<body>
 
-    <div class="app-container">
-      <div class="header">
-        <div class="header-content">
-          <div class="header-row">
-            <div class="title-group">
-              <h1>
-                Framerr <svg class="logo-icon"><use href="#icon-movie"></use></svg>
-              </h1>
-              <span class="version-info">ver 1.3.2</span>
-            </div>
-            <label for="videoFile" class="btn btn-sm" title="Choose Video File">
+  <svg style="display: none;" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="icon-movie" viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></symbol>
+    <symbol id="icon-folder_open" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></symbol>
+    <symbol id="icon-link" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></symbol>
+    <symbol id="icon-play_arrow" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></symbol>
+    <symbol id="icon-pause" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></symbol>
+    <symbol id="icon-volume_off" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></symbol>
+    <symbol id="icon-volume_up" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></symbol>
+    <symbol id="icon-skip_previous" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></symbol>
+    <symbol id="icon-skip_next" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></symbol>
+    <symbol id="icon-photo_camera" viewBox="0 0 24 24"><path d="M12 12c1.65 0 3 1.35 3 3s-1.35 3-3 3-3-1.35-3-3 1.35-3 3-3zm0 2c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm6-7h-3.17L13 5h-2L9.17 7H6c-1.1 0-2 .9-2 2v9c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/></symbol>
+  </svg>
+
+  <div class="app-container">
+    <div class="header">
+      <div class="header-content">
+        <div class="header-row">
+          <div class="title-group">
+            <h1>Framerr <svg class="logo-icon"><use href="#icon-movie"></use></svg></h1>
+            <span class="version-info">ver 1.4.0</span>
+          </div>
+          <div class="action-group">
+            <button id="urlBtn" class="btn btn-sm" title="Load Video from URL">
+              <svg class="icon"><use href="#icon-link"></use></svg>
+            </button>
+            <label for="videoFile" class="btn btn-sm" title="Choose Local Video File">
               <svg class="icon"><use href="#icon-folder_open"></use></svg>
             </label>
             <input type="file" id="videoFile" accept="video/*" />
           </div>
+        </div>
 
-          <div class="header-row video-info">
-            <div class="info-group">
-              <div><span id="currentTime">0.00</span>s / <span id="duration">0.00</span>s</div>
-              <div>Frame <span id="currentFrame">0</span> / <span id="totalFrames">0</span></div>
-            </div>
-            <button id="muteBtn" class="btn btn-sm active" title="Toggle Mute">
-              <svg class="icon" id="muteIcon"><use href="#icon-volume_off"></use></svg>
-            </button>
+        <div class="header-row video-info">
+          <div class="info-group">
+            <div><span id="currentTime">0.00</span>s / <span id="duration">0.00</span>s</div>
+            <div>Frame <span id="currentFrame">0</span> / <span id="totalFrames">0</span></div>
           </div>
-        </div>
-      </div>
-
-      <div class="video-wrapper" id="videoWrapper">
-        <video id="video" playsinline webkit-playsinline muted></video>
-      </div>
-
-      <div class="bottom-pane">
-        <div class="scrubber-container">
-          <input type="range" id="scrubber" min="0" max="100" value="0" step="0.01" />
-        </div>
-
-        <div class="controls">
-          <select id="speedSelect" class="btn btn-text speed-select" title="Playback Speed">
-            <option value="0.25">0.25x</option>
-            <option value="0.5">0.5x</option>
-            <option value="0.75">0.75x</option>
-            <option value="1" selected>1x</option>
-            <option value="1.5">1.5x</option>
-            <option value="2">2x</option>
-          </select>
-
-          <button id="prevFrameBtn" class="btn btn-md" title="Previous Frame">
-            <svg class="icon"><use href="#icon-skip_previous"></use></svg>
-          </button>
-          <button id="playPauseBtn" class="btn btn-lg" style="background: var(--text-main); color: var(--bg-color)" title="Play/Pause">
-            <svg class="icon icon-lg" id="playIcon"><use href="#icon-play_arrow"></use></svg>
-          </button>
-          <button id="nextFrameBtn" class="btn btn-md" title="Next Frame">
-            <svg class="icon"><use href="#icon-skip_next"></use></svg>
-          </button>
-          <button id="screenshotBtn" class="btn btn-md" title="Take Screenshot">
-            <svg class="icon"><use href="#icon-photo_camera"></use></svg>
+          <button id="muteBtn" class="btn btn-sm active" title="Toggle Mute">
+            <svg class="icon" id="muteIcon"><use href="#icon-volume_off"></use></svg>
           </button>
         </div>
       </div>
     </div>
 
-    <script>
-      /* --- Constants & Variables --- */
-      const FRAME_RATE = 30;
-      let currentVideoUrl = null;
-      let wasPlayingBeforeScrub = false;
-      let isUIInteracting = false;
+    <div class="video-wrapper" id="videoWrapper">
+      <video id="video" playsinline webkit-playsinline muted crossorigin="anonymous"></video>
+    </div>
 
-      let zoomScale = 1;
-      let panX = 0;
-      let panY = 0;
+    <div class="bottom-pane">
+      <div class="scrubber-container">
+        <input type="range" id="scrubber" min="0" max="100" value="0" step="0.01" />
+      </div>
 
-      /* --- DOM Mapping --- */
-      const DOM = {
-        videoFile: document.getElementById("videoFile"),
-        video: document.getElementById("video"),
-        videoWrapper: document.getElementById("videoWrapper"),
-        scrubber: document.getElementById("scrubber"),
-        speedSelect: document.getElementById("speedSelect"),
-        muteBtn: document.getElementById("muteBtn"),
-        muteIcon: document.getElementById("muteIcon").querySelector("use"),
-        prevFrameBtn: document.getElementById("prevFrameBtn"),
-        nextFrameBtn: document.getElementById("nextFrameBtn"),
-        playPauseBtn: document.getElementById("playPauseBtn"),
-        playIcon: document.getElementById("playIcon").querySelector("use"),
-        screenshotBtn: document.getElementById("screenshotBtn"),
-        currentTime: document.getElementById("currentTime"),
-        duration: document.getElementById("duration"),
-        totalFrames: document.getElementById("totalFrames"),
-        currentFrame: document.getElementById("currentFrame")
+      <div class="controls">
+        <select id="speedSelect" class="btn btn-text speed-select" title="Playback Speed">
+          <option value="0.25">0.25x</option>
+          <option value="0.5">0.5x</option>
+          <option value="0.75">0.75x</option>
+          <option value="1" selected>1x</option>
+          <option value="1.5">1.5x</option>
+          <option value="2">2x</option>
+        </select>
+
+        <button id="prevFrameBtn" class="btn btn-md" title="Previous Frame">
+          <svg class="icon"><use href="#icon-skip_previous"></use></svg>
+        </button>
+        <button id="playPauseBtn" class="btn btn-lg" style="background: var(--text-main); color: var(--bg-color);" title="Play/Pause">
+          <svg class="icon icon-lg" id="playIcon"><use href="#icon-play_arrow"></use></svg>
+        </button>
+        <button id="nextFrameBtn" class="btn btn-md" title="Next Frame">
+          <svg class="icon"><use href="#icon-skip_next"></use></svg>
+        </button>
+        <button id="screenshotBtn" class="btn btn-md" title="Take Screenshot">
+          <svg class="icon"><use href="#icon-photo_camera"></use></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const FRAME_RATE = 30;
+    let currentVideoUrl = null;
+    let wasPlayingBeforeScrub = false;
+    let isUIInteracting = false;
+
+    let zoomScale = 1;
+    let panX = 0;
+    let panY = 0;
+
+    const DOM = {
+      videoFile: document.getElementById("videoFile"),
+      urlBtn: document.getElementById("urlBtn"),
+      video: document.getElementById("video"),
+      videoWrapper: document.getElementById("videoWrapper"),
+      scrubber: document.getElementById("scrubber"),
+      speedSelect: document.getElementById("speedSelect"),
+      muteBtn: document.getElementById("muteBtn"),
+      muteIcon: document.getElementById("muteIcon").querySelector('use'),
+      prevFrameBtn: document.getElementById("prevFrameBtn"),
+      nextFrameBtn: document.getElementById("nextFrameBtn"),
+      playPauseBtn: document.getElementById("playPauseBtn"),
+      playIcon: document.getElementById("playIcon").querySelector('use'),
+      screenshotBtn: document.getElementById("screenshotBtn"),
+      currentTime: document.getElementById("currentTime"),
+      duration: document.getElementById("duration"),
+      totalFrames: document.getElementById("totalFrames"),
+      currentFrame: document.getElementById("currentFrame"),
+    };
+
+    function loadVideoFromFile(file) {
+      if (!file) return;
+      if (currentVideoUrl && currentVideoUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(currentVideoUrl);
+      }
+      DOM.video.removeAttribute("crossorigin");
+      currentVideoUrl = URL.createObjectURL(file);
+      DOM.video.src = currentVideoUrl;
+      DOM.video.load();
+      resetTransform();
+    }
+
+    function loadVideoFromURL(url) {
+      if (!url) return;
+      if (currentVideoUrl && currentVideoUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(currentVideoUrl);
+      }
+      DOM.video.setAttribute("crossorigin", "anonymous");
+      currentVideoUrl = url;
+      DOM.video.src = currentVideoUrl;
+      DOM.video.load();
+      resetTransform();
+    }
+
+    function togglePlay() {
+      if (!DOM.video.src) return;
+      if (DOM.video.paused) {
+        DOM.video.play();
+        DOM.playIcon.setAttribute('href', '#icon-pause');
+      } else {
+        DOM.video.pause();
+        DOM.playIcon.setAttribute('href', '#icon-play_arrow');
+      }
+    }
+
+    function stepFrame(frames) {
+      if (!DOM.video.src) return;
+      if (!DOM.video.paused) {
+        DOM.video.pause();
+        DOM.playIcon.setAttribute('href', '#icon-play_arrow');
+      }
+      const currentFrameIndex = Math.round(DOM.video.currentTime * FRAME_RATE);
+      const targetTime = (currentFrameIndex + frames) / FRAME_RATE;
+      DOM.video.currentTime = Math.max(0, Math.min(DOM.video.duration, targetTime));
+    }
+
+    function updateMetadata() {
+      if (isNaN(DOM.video.duration)) return;
+      DOM.duration.textContent = DOM.video.duration.toFixed(2);
+      DOM.totalFrames.textContent = Math.floor(DOM.video.duration * FRAME_RATE);
+      DOM.scrubber.max = DOM.video.duration;
+    }
+
+    function updateTime() {
+      DOM.currentTime.textContent = DOM.video.currentTime.toFixed(2);
+      DOM.currentFrame.textContent = Math.round(DOM.video.currentTime * FRAME_RATE);
+      DOM.scrubber.value = DOM.video.currentTime;
+    }
+
+    function bindPress(element, onStart, onEnd) {
+      element.addEventListener('contextmenu', e => e.preventDefault());
+      element.addEventListener('pointerdown', onStart);
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach(e => element.addEventListener(e, onEnd));
+    }
+
+    function setupSmoothFrameStepping(btn, direction) {
+      let timeoutId, animationFrameId, lastTime = 0, isHeld = false;
+
+      const triggerHapticTick = () => {
+        if (typeof navigator.vibrate === 'function') navigator.vibrate(10);
       };
 
-      /* --- Video Engine --- */
-      function loadVideo(file) {
-        if (!file) return;
-        if (currentVideoUrl) URL.revokeObjectURL(currentVideoUrl);
-        currentVideoUrl = URL.createObjectURL(file);
-        DOM.video.src = currentVideoUrl;
-        DOM.video.load();
-        resetTransform();
-      }
+      const startAction = (e) => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
 
-      function togglePlay() {
-        if (!DOM.video.src) return;
-        if (DOM.video.paused) {
-          DOM.video.play();
-          DOM.playIcon.setAttribute("href", "#icon-pause");
-        } else {
-          DOM.video.pause();
-          DOM.playIcon.setAttribute("href", "#icon-play_arrow");
-        }
-      }
+        isHeld = true;
+        isUIInteracting = true;
+        stepFrame(direction);
+        triggerHapticTick();
 
-      function stepFrame(frames) {
-        if (!DOM.video.src) return;
-        if (!DOM.video.paused) {
-          DOM.video.pause();
-          DOM.playIcon.setAttribute("href", "#icon-play_arrow");
-        }
-        const currentFrameIndex = Math.round(DOM.video.currentTime * FRAME_RATE);
-        const targetTime = (currentFrameIndex + frames) / FRAME_RATE;
-        DOM.video.currentTime = Math.max(0, Math.min(DOM.video.duration, targetTime));
-      }
+        timeoutId = setTimeout(() => {
+          if (!isHeld) return;
+          lastTime = performance.now();
 
-      function updateMetadata() {
-        if (isNaN(DOM.video.duration)) return;
-        DOM.duration.textContent = DOM.video.duration.toFixed(2);
-        DOM.totalFrames.textContent = Math.floor(DOM.video.duration * FRAME_RATE);
-        DOM.scrubber.max = DOM.video.duration;
-      }
-
-      function updateTime() {
-        DOM.currentTime.textContent = DOM.video.currentTime.toFixed(2);
-        DOM.currentFrame.textContent = Math.round(DOM.video.currentTime * FRAME_RATE);
-        DOM.scrubber.value = DOM.video.currentTime;
-      }
-
-      /* --- Interaction Handlers --- */
-      function bindPress(element, onStart, onEnd) {
-        element.addEventListener("contextmenu", (e) => e.preventDefault());
-        element.addEventListener("pointerdown", onStart);
-        ["pointerup", "pointerleave", "pointercancel"].forEach((e) => element.addEventListener(e, onEnd));
-      }
-
-      function setupSmoothFrameStepping(btn, direction) {
-        let timeoutId,
-          animationFrameId,
-          lastTime = 0,
-          isHeld = false;
-
-        const triggerHapticTick = () => {
-          if (typeof navigator.vibrate === "function") navigator.vibrate(10);
-        };
-
-        const startAction = (e) => {
-          if (e.pointerType === "mouse" && e.button !== 0) return;
-
-          isHeld = true;
-          isUIInteracting = true;
-          stepFrame(direction);
-          triggerHapticTick();
-
-          timeoutId = setTimeout(() => {
+          const loop = (currentTime) => {
             if (!isHeld) return;
-            lastTime = performance.now();
+            const deltaTime = currentTime - lastTime;
+            const msPerFrame = 195;
 
-            const loop = (currentTime) => {
-              if (!isHeld) return;
-              const deltaTime = currentTime - lastTime;
-              const msPerFrame = 195;
-
-              if (deltaTime >= msPerFrame) {
-                stepFrame(direction);
-                triggerHapticTick();
-                lastTime = currentTime - (deltaTime % msPerFrame);
-              }
-              animationFrameId = requestAnimationFrame(loop);
-            };
+            if (deltaTime >= msPerFrame) {
+              stepFrame(direction);
+              triggerHapticTick();
+              lastTime = currentTime - (deltaTime % msPerFrame);
+            }
             animationFrameId = requestAnimationFrame(loop);
-          }, 500);
-        };
+          };
+          animationFrameId = requestAnimationFrame(loop);
+        }, 500);
+      };
 
-        const stopAction = () => {
-          isHeld = false;
-          isUIInteracting = false;
-          clearTimeout(timeoutId);
-          cancelAnimationFrame(animationFrameId);
-        };
+      const stopAction = () => {
+        isHeld = false;
+        isUIInteracting = false;
+        clearTimeout(timeoutId);
+        cancelAnimationFrame(animationFrameId);
+      };
 
-        bindPress(btn, startAction, stopAction);
+      bindPress(btn, startAction, stopAction);
+    }
+
+    function downloadScreenshot() {
+      if (!DOM.video.src || DOM.video.readyState < 2) return;
+      if (!DOM.video.paused) {
+        DOM.video.pause();
+        DOM.playIcon.setAttribute('href', '#icon-play_arrow');
       }
 
-      /* --- Export Engine --- */
-      function downloadScreenshot() {
-        if (!DOM.video.src || DOM.video.readyState < 2) return;
-        if (!DOM.video.paused) {
-          DOM.video.pause();
-          DOM.playIcon.setAttribute("href", "#icon-play_arrow");
-        }
+      const canvas = document.createElement("canvas");
+      canvas.width = DOM.video.videoWidth;
+      canvas.height = DOM.video.videoHeight;
 
-        const canvas = document.createElement("canvas");
-        canvas.width = DOM.video.videoWidth;
-        canvas.height = DOM.video.videoHeight;
+      let ctx;
+      try {
+        ctx = canvas.getContext("2d", { colorSpace: "display-p3" });
+      } catch (e) {
+        ctx = canvas.getContext("2d");
+      }
 
-        let ctx;
-        try {
-          ctx = canvas.getContext("2d", { colorSpace: "display-p3" });
-        } catch (e) {
-          ctx = canvas.getContext("2d");
-        }
-
+      try {
         ctx.drawImage(DOM.video, 0, 0, canvas.width, canvas.height);
-
-        canvas.toBlob(async (blob) => {
-          if (!blob) return;
-
-          const filename = `frame-${Math.round(DOM.video.currentTime * FRAME_RATE)}.png`;
-          const file = new File([blob], filename, { type: "image/png" });
-
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-              await navigator.share({
-                files: [file],
-                title: "Saved Frame"
-              });
-              return;
-            } catch (error) {}
-          }
-
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = filename;
-          a.click();
-          setTimeout(() => URL.revokeObjectURL(url), 100);
-        }, "image/png");
+      } catch (e) {
+        alert("Cross-Origin Resource Blocked: The remote server for this URL does not allow direct frame extraction. Please download the video locally first.");
+        return;
       }
 
-      /* --- Spatial Transformations --- */
-      function applyTransform() {
-        DOM.video.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomScale})`;
-      }
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
 
-      function resetTransform() {
-        zoomScale = 1;
-        panX = 0;
-        panY = 0;
+        const filename = `frame-${Math.round(DOM.video.currentTime * FRAME_RATE)}.png`;
+        const file = new File([blob], filename, { type: "image/png" });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'Saved Frame'
+            });
+            return;
+          } catch (error) {}
+        }
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+      }, "image/png");
+    }
+
+    function applyTransform() {
+      DOM.video.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomScale})`;
+    }
+
+    function resetTransform() {
+      zoomScale = 1;
+      panX = 0;
+      panY = 0;
+      applyTransform();
+    }
+
+    let initialPinchDist = null;
+    let initialScale = 1;
+    let isPanning = false;
+    let startTouchX = 0, startTouchY = 0;
+    let initialPanX = 0, initialPanY = 0;
+    let lastTapTime = 0;
+    let hasDragged = false;
+
+    DOM.videoWrapper.addEventListener('touchstart', (e) => {
+      hasDragged = false;
+      const rect = DOM.videoWrapper.getBoundingClientRect();
+
+      if (e.touches.length === 2) {
+        isPanning = false;
+
+        let x1 = e.touches[0].clientX - rect.left;
+        let y1 = e.touches[0].clientY - rect.top;
+        let x2 = e.touches[1].clientX - rect.left;
+        let y2 = e.touches[1].clientY - rect.top;
+
+        initialPinchDist = Math.hypot(x2 - x1, y2 - y1);
+        initialScale = zoomScale;
+
+        let cx = (x1 + x2) / 2;
+        let cy = (y1 + y2) / 2;
+
+        startTouchX = (cx - panX) / zoomScale;
+        startTouchY = (cy - panY) / zoomScale;
+
+      } else if (e.touches.length === 1) {
+        isPanning = true;
+        startTouchX = e.touches[0].clientX;
+        startTouchY = e.touches[0].clientY;
+        initialPanX = panX;
+        initialPanY = panY;
+      }
+    }, { passive: false });
+
+    DOM.videoWrapper.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      hasDragged = true;
+      const rect = DOM.videoWrapper.getBoundingClientRect();
+
+      if (e.touches.length === 2 && initialPinchDist) {
+        let x1 = e.touches[0].clientX - rect.left;
+        let y1 = e.touches[0].clientY - rect.top;
+        let x2 = e.touches[1].clientX - rect.left;
+        let y2 = e.touches[1].clientY - rect.top;
+
+        const currentDist = Math.hypot(x2 - x1, y2 - y1);
+        let cx = (x1 + x2) / 2;
+        let cy = (y1 + y2) / 2;
+
+        let newScale = Math.min(Math.max(1, initialScale * (currentDist / initialPinchDist)), 10);
+
+        if (newScale === 1) {
+          panX = 0;
+          panY = 0;
+        } else {
+          panX = cx - startTouchX * newScale;
+          panY = cy - startTouchY * newScale;
+        }
+        zoomScale = newScale;
+        applyTransform();
+
+      } else if (e.touches.length === 1 && isPanning && zoomScale > 1) {
+        panX = initialPanX + (e.touches[0].clientX - startTouchX);
+        panY = initialPanY + (e.touches[0].clientY - startTouchY);
         applyTransform();
       }
+    }, { passive: false });
 
-      let initialPinchDist = null;
-      let initialScale = 1;
-      let isPanning = false;
-      let startTouchX = 0,
-        startTouchY = 0;
-      let initialPanX = 0,
-        initialPanY = 0;
-      let lastTapTime = 0;
-      let hasDragged = false;
-
-      DOM.videoWrapper.addEventListener(
-        "touchstart",
-        (e) => {
-          hasDragged = false;
-          const rect = DOM.videoWrapper.getBoundingClientRect();
-
-          if (e.touches.length === 2) {
-            isPanning = false;
-
-            let x1 = e.touches[0].clientX - rect.left;
-            let y1 = e.touches[0].clientY - rect.top;
-            let x2 = e.touches[1].clientX - rect.left;
-            let y2 = e.touches[1].clientY - rect.top;
-
-            initialPinchDist = Math.hypot(x2 - x1, y2 - y1);
-            initialScale = zoomScale;
-
-            let cx = (x1 + x2) / 2;
-            let cy = (y1 + y2) / 2;
-
-            startTouchX = (cx - panX) / zoomScale;
-            startTouchY = (cy - panY) / zoomScale;
-          } else if (e.touches.length === 1) {
-            isPanning = true;
-            startTouchX = e.touches[0].clientX;
-            startTouchY = e.touches[0].clientY;
-            initialPanX = panX;
-            initialPanY = panY;
-          }
-        },
-        { passive: false }
-      );
-
-      DOM.videoWrapper.addEventListener(
-        "touchmove",
-        (e) => {
-          e.preventDefault();
-          hasDragged = true;
-          const rect = DOM.videoWrapper.getBoundingClientRect();
-
-          if (e.touches.length === 2 && initialPinchDist) {
-            let x1 = e.touches[0].clientX - rect.left;
-            let y1 = e.touches[0].clientY - rect.top;
-            let x2 = e.touches[1].clientX - rect.left;
-            let y2 = e.touches[1].clientY - rect.top;
-
-            const currentDist = Math.hypot(x2 - x1, y2 - y1);
-            let cx = (x1 + x2) / 2;
-            let cy = (y1 + y2) / 2;
-
-            let newScale = Math.min(Math.max(1, initialScale * (currentDist / initialPinchDist)), 10);
-
-            if (newScale === 1) {
-              panX = 0;
-              panY = 0;
-            } else {
-              panX = cx - startTouchX * newScale;
-              panY = cy - startTouchY * newScale;
-            }
-            zoomScale = newScale;
-            applyTransform();
-          } else if (e.touches.length === 1 && isPanning && zoomScale > 1) {
-            panX = initialPanX + (e.touches[0].clientX - startTouchX);
-            panY = initialPanY + (e.touches[0].clientY - startTouchY);
-            applyTransform();
-          }
-        },
-        { passive: false }
-      );
-
-      DOM.videoWrapper.addEventListener("touchend", (e) => {
-        if (e.touches.length < 2) initialPinchDist = null;
-        if (e.touches.length === 0) {
-          isPanning = false;
-          if (!hasDragged) {
-            const currentTime = Date.now();
-            const tapLength = currentTime - lastTapTime;
-            if (tapLength < 300 && tapLength > 0) {
-              resetTransform();
-            } else {
-              togglePlay();
-            }
-            lastTapTime = currentTime;
-          }
-        }
-      });
-
-      DOM.videoWrapper.addEventListener(
-        "wheel",
-        (e) => {
-          e.preventDefault();
-          const rect = DOM.videoWrapper.getBoundingClientRect();
-          const mouseX = e.clientX - rect.left;
-          const mouseY = e.clientY - rect.top;
-
-          const zoomTargetX = (mouseX - panX) / zoomScale;
-          const zoomTargetY = (mouseY - panY) / zoomScale;
-
-          const scaleDelta = e.deltaY * -0.005;
-          let newScale = Math.min(Math.max(1, zoomScale + scaleDelta), 10);
-
-          if (newScale === 1) {
-            panX = 0;
-            panY = 0;
+    DOM.videoWrapper.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) initialPinchDist = null;
+      if (e.touches.length === 0) {
+        isPanning = false;
+        if (!hasDragged) {
+          const currentTime = Date.now();
+          const tapLength = currentTime - lastTapTime;
+          if (tapLength < 300 && tapLength > 0) {
+            resetTransform();
           } else {
-            panX = mouseX - zoomTargetX * newScale;
-            panY = mouseY - zoomTargetY * newScale;
+            togglePlay();
           }
-          zoomScale = newScale;
-          applyTransform();
-        },
-        { passive: false }
-      );
-
-      /* --- Bindings & Initializers --- */
-      DOM.videoFile.addEventListener("change", (e) => loadVideo(e.target.files[0]));
-      DOM.video.addEventListener("loadedmetadata", updateMetadata);
-      DOM.video.addEventListener("timeupdate", updateTime);
-      DOM.video.addEventListener("ended", () => DOM.playIcon.setAttribute("href", "#icon-play_arrow"));
-      DOM.playPauseBtn.addEventListener("click", togglePlay);
-
-      DOM.speedSelect.addEventListener("change", (e) => {
-        DOM.video.playbackRate = parseFloat(e.target.value);
-      });
-
-      DOM.muteBtn.addEventListener("click", () => {
-        DOM.video.muted = !DOM.video.muted;
-        DOM.muteIcon.setAttribute("href", DOM.video.muted ? "#icon-volume_off" : "#icon-volume_up");
-        DOM.muteBtn.classList.toggle("active", DOM.video.muted);
-      });
-
-      DOM.screenshotBtn.addEventListener("click", downloadScreenshot);
-
-      DOM.scrubber.addEventListener("input", (e) => {
-        DOM.video.currentTime = e.target.value;
-        updateTime();
-      });
-
-      bindPress(
-        DOM.scrubber,
-        () => {
-          isUIInteracting = true;
-          wasPlayingBeforeScrub = !DOM.video.paused;
-          if (wasPlayingBeforeScrub) {
-            DOM.video.pause();
-            DOM.playIcon.setAttribute("href", "#icon-play_arrow");
-          }
-        },
-        () => {
-          isUIInteracting = false;
-          if (wasPlayingBeforeScrub) {
-            DOM.video.play();
-            DOM.playIcon.setAttribute("href", "#icon-pause");
-          }
+          lastTapTime = currentTime;
         }
-      );
+      }
+    });
 
-      setupSmoothFrameStepping(DOM.prevFrameBtn, -1);
-      setupSmoothFrameStepping(DOM.nextFrameBtn, 1);
-    </script>
-  </body>
+    DOM.videoWrapper.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const rect = DOM.videoWrapper.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const zoomTargetX = (mouseX - panX) / zoomScale;
+      const zoomTargetY = (mouseY - panY) / zoomScale;
+
+      const scaleDelta = e.deltaY * -0.005;
+      let newScale = Math.min(Math.max(1, zoomScale + scaleDelta), 10);
+
+      if (newScale === 1) {
+        panX = 0;
+        panY = 0;
+      } else {
+        panX = mouseX - zoomTargetX * newScale;
+        panY = mouseY - zoomTargetY * newScale;
+      }
+      zoomScale = newScale;
+      applyTransform();
+    }, { passive: false });
+
+    DOM.videoFile.addEventListener("change", (e) => loadVideoFromFile(e.target.files[0]));
+
+    DOM.urlBtn.addEventListener("click", () => {
+      const url = prompt("Enter direct video URL (.mp4, .webm, etc.):\n\nNote: Generic web page links (YouTube, TikTok) will not work.");
+      if (url && url.trim() !== "") {
+        loadVideoFromURL(url.trim());
+      }
+    });
+
+    DOM.video.addEventListener("loadedmetadata", updateMetadata);
+    DOM.video.addEventListener("timeupdate", updateTime);
+    DOM.video.addEventListener("ended", () => DOM.playIcon.setAttribute('href', '#icon-play_arrow'));
+    DOM.video.addEventListener("error", () => {
+      if (currentVideoUrl) alert("Failed to load media. Ensure the URL points directly to a valid video file.");
+    });
+
+    DOM.playPauseBtn.addEventListener("click", togglePlay);
+
+    DOM.speedSelect.addEventListener("change", (e) => {
+      DOM.video.playbackRate = parseFloat(e.target.value);
+    });
+
+    DOM.muteBtn.addEventListener("click", () => {
+      DOM.video.muted = !DOM.video.muted;
+      DOM.muteIcon.setAttribute('href', DOM.video.muted ? '#icon-volume_off' : '#icon-volume_up');
+      DOM.muteBtn.classList.toggle("active", DOM.video.muted);
+    });
+
+    DOM.screenshotBtn.addEventListener("click", downloadScreenshot);
+
+    DOM.scrubber.addEventListener("input", (e) => {
+      DOM.video.currentTime = e.target.value;
+      updateTime();
+    });
+
+    bindPress(DOM.scrubber,
+      () => {
+        isUIInteracting = true;
+        wasPlayingBeforeScrub = !DOM.video.paused;
+        if (wasPlayingBeforeScrub) {
+          DOM.video.pause();
+          DOM.playIcon.setAttribute('href', '#icon-play_arrow');
+        }
+      },
+      () => {
+        isUIInteracting = false;
+        if (wasPlayingBeforeScrub) {
+          DOM.video.play();
+          DOM.playIcon.setAttribute('href', '#icon-pause');
+        }
+      }
+    );
+
+    setupSmoothFrameStepping(DOM.prevFrameBtn, -1);
+    setupSmoothFrameStepping(DOM.nextFrameBtn, 1);
+  </script>
+</body>
 </html>
-
-```
