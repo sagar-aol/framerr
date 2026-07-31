@@ -1,10 +1,11 @@
-Here is the fully implemented `ver 1.5.0` with mainstream video extraction integrated and all alerts/warnings removed, per your strict requirements.
+This is an excellent choice. The **Jog Wheel (Virtual Dial)** is the absolute gold standard for precision mobile video editing (used heavily in apps like LumaFusion).
 
-### What was changed:
+I have implemented an industry-grade hybrid approach:
 
-1. **Mainstream Extraction API:** The link button now routes YouTube, Instagram, Facebook, TikTok, and X (Twitter) URLs through an industry-standard backend extraction API (using the open-source Cobalt architecture). It automatically negotiates the payload to extract the raw 1080p `.mp4` URL and injects it straight into the player.
-2. **Alerts Removed:** All UI popups, warnings, and `alert()` blocks regarding cross-origin rendering have been completely stripped out. If a remote CDN restricts canvas frame-grabbing, it will now fail silently in the background without interrupting the user experience.
-3. **Playback Compatibility:** The `crossorigin` attribute logic was dynamically adjusted so that videos extracted from strict CDNs (like `googlevideo.com`) will still flawlessly load and play without being blocked by the browser.
+1. **The Jog Wheel:** A large, textured, infinite-scrolling dial. You can touch anywhere on this massive target and drag left/right for frame-by-frame precision. It feels tactile and completely eliminates the "fat finger" issue.
+2. **The Macro Scrubber:** I shrunk the traditional slider down into a minimal track right above the wheel. It's kept strictly for rapid macro-navigation (jumping from minute 1 to minute 10 instantly), while the dial handles the micro-navigation.
+
+Here is `ver 1.7.0` with the Jog Wheel engine built natively into the UI:
 
 ```html
 <!DOCTYPE html>
@@ -26,7 +27,7 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
       --text-muted: #8a8a9e;
       --glass-bg: rgba(13, 13, 18, 0.75);
       --header-height: calc(124px + env(safe-area-inset-top));
-      --bottom-height: calc(136px + env(safe-area-inset-bottom));
+      --bottom-height: calc(160px + env(safe-area-inset-bottom));
     }
 
     *, *::before, *::after {
@@ -99,7 +100,7 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: 20px;
+      gap: 16px;
       background: var(--glass-bg);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
@@ -247,32 +248,86 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
     #currentTime, #duration { min-width: 48px; }
     #currentFrame, #totalFrames { min-width: 36px; }
 
-    .scrubber-container { width: 100%; max-width: 800px; margin: 0 auto; }
+    /* --- Scrubber & Jog Wheel Layout --- */
+    .scrubber-container {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
 
+    /* 1. Macro Scrubber (Thin bar for fast jumping) */
     input[type="range"] {
       -webkit-appearance: none;
       width: 100%;
       background: transparent;
       margin: 0;
       cursor: pointer;
+      height: 24px;
     }
     input[type="range"]::-webkit-slider-runnable-track {
       width: 100%;
-      height: 6px;
+      height: 4px;
       background: var(--surface-hover);
-      border-radius: 3px;
+      border-radius: 2px;
     }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      height: 18px;
-      width: 18px;
+      height: 14px;
+      width: 14px;
       border-radius: 50%;
-      background: var(--accent-color);
-      margin-top: -6px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.6);
-      transition: transform 0.1s;
+      background: var(--text-muted);
+      margin-top: -5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
     }
-    input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.3); }
+
+    /* 2. Jog Wheel (Massive tactile target for precision) */
+    .jog-wheel {
+      width: 100%;
+      height: 44px;
+      background: var(--surface-color);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+      touch-action: none;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+    }
+    .jog-wheel:active { cursor: grabbing; }
+
+    /* The repeating ticker tape texture */
+    .jog-texture {
+      position: absolute;
+      top: 0; bottom: 0; left: -100vw; right: -100vw;
+      background-image: repeating-linear-gradient(
+        to right,
+        rgba(255,255,255,0.05) 0px,
+        rgba(255,255,255,0.05) 2px,
+        transparent 2px,
+        transparent 10px,
+        rgba(255,255,255,0.2) 10px,
+        rgba(255,255,255,0.2) 12px,
+        transparent 12px,
+        transparent 20px
+      );
+      transform: translateX(var(--jog-offset, 0px));
+      pointer-events: none;
+      will-change: transform;
+    }
+
+    /* Center playhead line */
+    .jog-indicator {
+      position: absolute;
+      top: 0; bottom: 0; left: 50%;
+      width: 2px;
+      background: var(--accent-color);
+      transform: translateX(-50%);
+      pointer-events: none;
+      box-shadow: 0 0 8px var(--accent-color);
+    }
 
     .controls {
       display: flex;
@@ -283,11 +338,19 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
       margin: 0 auto;
     }
 
+    .playback-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      justify-content: center;
+    }
+
     @media (max-width: 400px) {
       .btn-md { width: 50px; height: 50px; }
       .btn-lg { width: 56px; height: 56px; }
       .btn-text { height: 50px; font-size: 14px; }
       .info-group { gap: 10px; font-size: 11px; }
+      .playback-group { gap: 12px; }
       #currentTime, #duration { min-width: 42px; }
       #currentFrame, #totalFrames { min-width: 30px; }
     }
@@ -299,6 +362,7 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
     <symbol id="icon-movie" viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></symbol>
     <symbol id="icon-folder_open" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></symbol>
     <symbol id="icon-link" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></symbol>
+    <symbol id="icon-download" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></symbol>
     <symbol id="icon-play_arrow" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></symbol>
     <symbol id="icon-pause" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></symbol>
     <symbol id="icon-volume_off" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></symbol>
@@ -314,7 +378,7 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
         <div class="header-row">
           <div class="title-group">
             <h1>Framerr <svg class="logo-icon"><use href="#icon-movie"></use></svg></h1>
-            <span class="version-info">ver 1.5.0</span>
+            <span class="version-info">ver 1.7.0</span>
           </div>
           <div class="action-group">
             <button id="urlBtn" class="btn btn-sm" title="Load Video from Link">
@@ -323,7 +387,10 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
             <label for="videoFile" class="btn btn-sm" title="Choose Local Video File">
               <svg class="icon"><use href="#icon-folder_open"></use></svg>
             </label>
-            <input type="file" id="videoFile" accept="video/*" />
+            <input type="file" id="videoFile" accept="video/*,video/mp4,video/x-m4v,video/webm,video/quicktime" />
+            <button id="saveVideoBtn" class="btn btn-sm" title="Save Video">
+              <svg class="icon"><use href="#icon-download"></use></svg>
+            </button>
           </div>
         </div>
 
@@ -340,12 +407,20 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
     </div>
 
     <div class="video-wrapper" id="videoWrapper">
-      <video id="video" playsinline webkit-playsinline muted></video>
+      <video id="video" playsinline webkit-playsinline muted crossorigin="anonymous"></video>
     </div>
 
     <div class="bottom-pane">
+
       <div class="scrubber-container">
-        <input type="range" id="scrubber" min="0" max="100" value="0" step="0.01" />
+        <!-- 1. Macro Scrubber for rapid timeline jumps -->
+        <input type="range" id="macroScrubber" min="0" max="100" value="0" step="0.01" />
+
+        <!-- 2. Jog Wheel for tactile micro-precision -->
+        <div id="jogWheel" class="jog-wheel">
+          <div id="jogTexture" class="jog-texture"></div>
+          <div class="jog-indicator"></div>
+        </div>
       </div>
 
       <div class="controls">
@@ -358,15 +433,18 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
           <option value="2">2x</option>
         </select>
 
-        <button id="prevFrameBtn" class="btn btn-md" title="Previous Frame">
-          <svg class="icon"><use href="#icon-skip_previous"></use></svg>
-        </button>
-        <button id="playPauseBtn" class="btn btn-lg" style="background: var(--text-main); color: var(--bg-color);" title="Play/Pause">
-          <svg class="icon icon-lg" id="playIcon"><use href="#icon-play_arrow"></use></svg>
-        </button>
-        <button id="nextFrameBtn" class="btn btn-md" title="Next Frame">
-          <svg class="icon"><use href="#icon-skip_next"></use></svg>
-        </button>
+        <div class="playback-group">
+          <button id="prevFrameBtn" class="btn btn-md" title="Previous Frame">
+            <svg class="icon"><use href="#icon-skip_previous"></use></svg>
+          </button>
+          <button id="playPauseBtn" class="btn btn-lg" style="background: var(--text-main); color: var(--bg-color);" title="Play/Pause">
+            <svg class="icon icon-lg" id="playIcon"><use href="#icon-play_arrow"></use></svg>
+          </button>
+          <button id="nextFrameBtn" class="btn btn-md" title="Next Frame">
+            <svg class="icon"><use href="#icon-skip_next"></use></svg>
+          </button>
+        </div>
+
         <button id="screenshotBtn" class="btn btn-md" title="Take Screenshot">
           <svg class="icon"><use href="#icon-photo_camera"></use></svg>
         </button>
@@ -380,6 +458,9 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
     let wasPlayingBeforeScrub = false;
     let isUIInteracting = false;
 
+    // Sensitivity for the Jog Wheel (Higher = requires more finger travel to skip 1 second)
+    const JOG_SPEED = 150;
+
     let zoomScale = 1;
     let panX = 0;
     let panY = 0;
@@ -387,9 +468,12 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
     const DOM = {
       videoFile: document.getElementById("videoFile"),
       urlBtn: document.getElementById("urlBtn"),
+      saveVideoBtn: document.getElementById("saveVideoBtn"),
       video: document.getElementById("video"),
       videoWrapper: document.getElementById("videoWrapper"),
-      scrubber: document.getElementById("scrubber"),
+      macroScrubber: document.getElementById("macroScrubber"),
+      jogWheel: document.getElementById("jogWheel"),
+      jogTexture: document.getElementById("jogTexture"),
       speedSelect: document.getElementById("speedSelect"),
       muteBtn: document.getElementById("muteBtn"),
       muteIcon: document.getElementById("muteIcon").querySelector('use'),
@@ -421,7 +505,7 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
       if (currentVideoUrl && currentVideoUrl.startsWith("blob:")) {
         URL.revokeObjectURL(currentVideoUrl);
       }
-      DOM.video.removeAttribute("crossorigin");
+      DOM.video.setAttribute("crossorigin", "anonymous");
       currentVideoUrl = url;
       DOM.video.src = currentVideoUrl;
       DOM.video.load();
@@ -454,13 +538,19 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
       if (isNaN(DOM.video.duration)) return;
       DOM.duration.textContent = DOM.video.duration.toFixed(2);
       DOM.totalFrames.textContent = Math.floor(DOM.video.duration * FRAME_RATE);
-      DOM.scrubber.max = DOM.video.duration;
+      DOM.macroScrubber.max = DOM.video.duration;
     }
 
     function updateTime() {
       DOM.currentTime.textContent = DOM.video.currentTime.toFixed(2);
       DOM.currentFrame.textContent = Math.round(DOM.video.currentTime * FRAME_RATE);
-      DOM.scrubber.value = DOM.video.currentTime;
+
+      // Update Macro Scrubber
+      DOM.macroScrubber.value = DOM.video.currentTime;
+
+      // Update Jog Wheel Visual Texture
+      const offset = -(DOM.video.currentTime * JOG_SPEED);
+      DOM.jogTexture.style.setProperty('--jog-offset', `${offset}px`);
     }
 
     function bindPress(element, onStart, onEnd) {
@@ -547,10 +637,7 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
 
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
-              await navigator.share({
-                files: [file],
-                title: 'Saved Frame'
-              });
+              await navigator.share({ files: [file], title: 'Saved Frame' });
               return;
             } catch (error) {}
           }
@@ -567,6 +654,21 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
       }
     }
 
+    function downloadVideo() {
+      if (!currentVideoUrl) return;
+      try {
+        const a = document.createElement("a");
+        a.href = currentVideoUrl;
+        a.target = "_blank";
+        a.download = `framerr-export-${Date.now()}.mp4`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (e) {
+        return;
+      }
+    }
+
     function applyTransform() {
       DOM.video.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomScale})`;
     }
@@ -578,6 +680,7 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
       applyTransform();
     }
 
+    // --- Spatial Pan/Zoom Handling ---
     let initialPinchDist = null;
     let initialScale = 1;
     let isPanning = false;
@@ -690,10 +793,13 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
       applyTransform();
     }, { passive: false });
 
+    // --- Core Logic Mappings ---
+
     DOM.videoFile.addEventListener("change", (e) => loadVideoFromFile(e.target.files[0]));
+    DOM.saveVideoBtn.addEventListener("click", downloadVideo);
 
     DOM.urlBtn.addEventListener("click", async () => {
-      const url = prompt("Paste URL:");
+      const url = prompt("");
       if (!url || url.trim() === "") return;
 
       const targetUrl = url.trim();
@@ -712,7 +818,7 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
             },
             body: JSON.stringify({
               url: targetUrl,
-              vQuality: "1080"
+              vQuality: "max"
             })
           });
 
@@ -733,6 +839,7 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
     DOM.video.addEventListener("loadedmetadata", updateMetadata);
     DOM.video.addEventListener("timeupdate", updateTime);
     DOM.video.addEventListener("ended", () => DOM.playIcon.setAttribute('href', '#icon-play_arrow'));
+    DOM.video.addEventListener("error", () => DOM.video.removeAttribute("crossorigin"));
 
     DOM.playPauseBtn.addEventListener("click", togglePlay);
 
@@ -748,12 +855,13 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
 
     DOM.screenshotBtn.addEventListener("click", downloadScreenshot);
 
-    DOM.scrubber.addEventListener("input", (e) => {
+    // --- Macro Scrubber Handler ---
+    DOM.macroScrubber.addEventListener("input", (e) => {
       DOM.video.currentTime = e.target.value;
       updateTime();
     });
 
-    bindPress(DOM.scrubber,
+    bindPress(DOM.macroScrubber,
       () => {
         isUIInteracting = true;
         wasPlayingBeforeScrub = !DOM.video.paused;
@@ -771,8 +879,55 @@ Here is the fully implemented `ver 1.5.0` with mainstream video extraction integ
       }
     );
 
+    // --- Jog Wheel Handler ---
+    let isJogging = false;
+    let lastJogX = 0;
+
+    DOM.jogWheel.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      isJogging = true;
+      isUIInteracting = true;
+      lastJogX = e.clientX;
+
+      wasPlayingBeforeScrub = !DOM.video.paused;
+      if (wasPlayingBeforeScrub) {
+        DOM.video.pause();
+        DOM.playIcon.setAttribute('href', '#icon-play_arrow');
+      }
+      DOM.jogWheel.setPointerCapture(e.pointerId);
+    });
+
+    DOM.jogWheel.addEventListener('pointermove', (e) => {
+      if (!isJogging) return;
+      if (isNaN(DOM.video.duration)) return;
+
+      const deltaX = e.clientX - lastJogX;
+      lastJogX = e.clientX;
+
+      // Left swipe = Forward in time, Right swipe = Back in time
+      const timeDelta = -(deltaX / JOG_SPEED);
+      DOM.video.currentTime = Math.max(0, Math.min(DOM.video.duration, DOM.video.currentTime + timeDelta));
+      updateTime();
+    });
+
+    const stopJog = (e) => {
+      if (!isJogging) return;
+      isJogging = false;
+      isUIInteracting = false;
+      DOM.jogWheel.releasePointerCapture(e.pointerId);
+
+      if (wasPlayingBeforeScrub) {
+        DOM.video.play();
+        DOM.playIcon.setAttribute('href', '#icon-pause');
+      }
+    };
+
+    DOM.jogWheel.addEventListener('pointerup', stopJog);
+    DOM.jogWheel.addEventListener('pointercancel', stopJog);
+
     setupSmoothFrameStepping(DOM.prevFrameBtn, -1);
     setupSmoothFrameStepping(DOM.nextFrameBtn, 1);
   </script>
 </body>
 </html>
+
